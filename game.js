@@ -945,24 +945,59 @@ canvas.addEventListener("wheel", e => {
 }, { passive: false });
 
 let dragging = false, dragX = 0, dragY = 0;
+const pointers = new Map();
+let pinch = null;
+
 canvas.addEventListener("pointerdown", e => {
-  if (e.button !== 0) return;
-  dragging = true;
-  [dragX, dragY] = toCanvasXY(e);
+  if (e.button !== 0 && e.pointerType === "mouse") return;
   try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
+  const [mx, my] = toCanvasXY(e);
+  pointers.set(e.pointerId, { x: mx, y: my });
+  if (pointers.size === 1) {
+    dragging = true; dragX = mx; dragY = my;
+  } else if (pointers.size === 2) {
+    dragging = false;
+    const [p1, p2] = [...pointers.values()];
+    pinch = { dist: Math.max(1, Math.hypot(p1.x - p2.x, p1.y - p2.y)),
+              cx: (p1.x + p2.x) / 2, cy: (p1.y + p2.y) / 2, s0: view.s, x0: view.x, y0: view.y };
+  }
 });
 canvas.addEventListener("pointermove", e => {
-  [mouseX, mouseY] = toCanvasXY(e);
-  if (dragging) {
-    view.x += mouseX - dragX;
-    view.y += mouseY - dragY;
-    [dragX, dragY] = [mouseX, mouseY];
+  const [mx, my] = toCanvasXY(e);
+  if (pointers.has(e.pointerId)) pointers.set(e.pointerId, { x: mx, y: my });
+  if (pointers.size >= 2 && pinch) {
+    const [p1, p2] = [...pointers.values()];
+    const dist = Math.max(1, Math.hypot(p1.x - p2.x, p1.y - p2.y));
+    const cx = (p1.x + p2.x) / 2, cy = (p1.y + p2.y) / 2;
+    view.s = Math.max(0.45, Math.min(3.5, pinch.s0 * dist / pinch.dist));
+    view.x = cx - (pinch.cx - pinch.x0) * (view.s / pinch.s0);
+    view.y = cy - (pinch.cy - pinch.y0) * (view.s / pinch.s0);
+    clampView();
+  } else if (dragging && pointers.size === 1) {
+    view.x += mx - dragX;
+    view.y += my - dragY;
+    dragX = mx; dragY = my;
     clampView();
   }
+  mouseX = mx; mouseY = my;
   pickHover();
 });
-canvas.addEventListener("pointerup", () => { dragging = false; });
-canvas.addEventListener("pointerleave", () => { hoverNode = -1; dragging = false; });
+function endPointer(e) {
+  pointers.delete(e.pointerId);
+  if (pointers.size < 2) pinch = null;
+  if (pointers.size === 1) {
+    const [p] = [...pointers.values()];
+    dragging = true; dragX = p.x; dragY = p.y;
+  } else if (pointers.size === 0) {
+    dragging = false;
+  }
+}
+canvas.addEventListener("pointerup", endPointer);
+canvas.addEventListener("pointercancel", endPointer);
+canvas.addEventListener("pointerleave", e => {
+  if (e.pointerType === "mouse") { hoverNode = -1; }
+  if (pointers.has(e.pointerId)) endPointer(e);
+});
 canvas.addEventListener("dblclick", () => { view.s = 1; view.x = 0; view.y = 0; clampView(); });
 
 function draw() {
