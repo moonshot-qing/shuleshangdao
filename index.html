@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>谣言瘟疫 · 校园社交网络传播模拟</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <header id="topbar">
+    <div class="brand">谣言瘟疫<span>RUMOR PLAGUE</span></div>
+    <div id="rumor-title">「食堂阿姨手抖是因为帕金森?」</div>
+    <div class="controls">
+      <div id="clock">第 0.0 天</div>
+      <button id="btn-pause" title="暂停/继续">⏸</button>
+      <button id="btn-speed" title="切换速度">1×</button>
+      <button id="btn-restart" title="重新开始">↺</button>
+    </div>
+  </header>
+
+  <main id="stage">
+    <canvas id="net"></canvas>
+    <div id="fx-bar" style="display:none"></div>
+    <div id="target-chip" style="display:none"></div>
+
+    <aside id="stats">
+      <div class="res-row">💰 流量 <b id="st-traffic">150</b></div>
+      <div class="bar-row"><span>知晓率</span><div class="track"><div id="bar-aware" class="fill f-aware"></div></div><b id="v-aware">0%</b></div>
+      <div class="bar-row"><span>信服率</span><div class="track"><div id="bar-belief" class="fill f-belief"></div></div><b id="v-belief">0%</b></div>
+      <div class="bar-row"><span>舆论热度</span><div class="track"><div id="bar-heat" class="fill f-heat"></div></div><b id="v-heat">0%</b></div>
+      <div class="bar-row"><span>官方关注</span><div class="track"><div id="bar-att" class="fill f-att"></div></div><b id="v-att">0%</b></div>
+      <div class="bar-row"><span>封号风险</span><div class="track"><div id="bar-risk" class="fill f-risk"></div></div><b id="v-risk">0%</b></div>
+      <div class="param">官方公信力 <b id="p-trust">75%</b></div>
+      <div class="param">谣言强度 R=i×a <b id="p-r">--</b></div>
+      <div class="param">在线人数 <b id="p-pop">--</b></div>
+      <div id="legend">
+        <div><i class="lg lg-bigv"></i>大V</div>
+        <div><i class="lg lg-mkt"></i>营销号</div>
+        <div><i class="lg lg-crowd"></i>吃瓜群众</div>
+        <div><i class="lg lg-bot"></i>辟谣bot</div>
+        <div><i class="lg lg-mid"></i>理中客</div>
+        <div><i class="lg lg-leader"></i>群主</div>
+        <div><i class="lg lg-troll"></i>杠精</div>
+        <div><i class="lg lg-counselor"></i>辅导员</div>
+      </div>
+    </aside>
+
+    <aside id="log"><div class="log-title">舆情动态</div><div id="log-list"></div></aside>
+  </main>
+
+  <footer id="hand">
+    <div class="hand-hint">出牌后自动补牌 · 花流量抽卡换稀有牌 · 灰色的人还没听说，谣言抵达才会被点亮</div>
+    <div id="cards"></div>
+  </footer>
+
+  <div id="overlay-start" class="overlay">
+    <div class="panel">
+      <h1>谣言瘟疫</h1>
+      <p class="sub">把一条谣言投进模拟校园社交网络，看它像瘟疫一样扩散。</p>
+      <p class="desc">你是舆论场的操盘手。信谣的节点会持续产出<b>流量</b>，流量是你出牌的筹码：每张牌都会改变传播参数，但也会推高<b>官方关注度</b>与<b>封号风险</b>。试着达成不同结局：</p>
+      <ul class="endings-list">
+        <li>🔥 <b>全网皆知</b> —— 让超过三分之二的人同时信谣</li>
+        <li>🧊 <b>被扼杀在摇篮里</b> —— 早期彻底扑灭</li>
+        <li>🌪 <b>反转后二次爆发</b> —— 辟谣翻车，谣言变异反扑</li>
+        <li>🎭 <b>娱乐化消解</b> —— 传遍全网但没人信，被玩梗玩坏</li>
+      </ul>
+      <div class="rumor-pick">
+        <div class="pick-label">选择开局剧本（卡牌）：不同剧本 = 不同初始条件与谣言强度</div>
+        <div id="rumor-cards"></div>
+        <div class="pick-label" style="margin-top:14px">难度</div>
+        <div id="diff-row"></div>
+        <div class="pick-label" style="margin-top:14px">目标结局（可选，达成 +15 评分）</div>
+        <div id="target-row"></div>
+      </div>
+      <div id="ach-case"></div>
+      <button id="btn-start" disabled>投放谣言</button>
+    </div>
+  </div>
+
+  <div id="overlay-event" class="overlay hidden">
+    <div class="panel event-panel">
+      <div id="ev-icon"></div>
+      <h2 id="ev-title"></h2>
+      <p class="desc" style="text-align:center">⚡ 突发事件！游戏已暂停，请立刻做出选择：</p>
+      <div id="ev-opts"></div>
+    </div>
+  </div>
+
+  <div id="overlay-end" class="overlay hidden">
+    <div class="panel">
+      <div id="end-emoji"></div>
+      <h1 id="end-title"></h1>
+      <p id="end-desc" class="desc"></p>
+      <div id="end-stats"></div>
+      <div id="end-grade"></div>
+      <div id="end-ach"></div>
+      <button id="btn-again">再来一局</button>
+    </div>
+  </div>
+</div>
+<script src="game.js"></script>
+</body>
+</html>
