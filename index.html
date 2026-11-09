@@ -2,103 +2,73 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>谣言瘟疫 · 校园社交网络传播模拟</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#f2eee3">
+<title>谣言瘟疫 · 看见信息的一生</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<a class="skip-link" href="#stage">跳到传播网络</a>
 <div id="app">
   <header id="topbar">
-    <div class="brand">谣言瘟疫<span>RUMOR PLAGUE</span></div>
-    <div id="rumor-title">「食堂阿姨手抖是因为帕金森?」</div>
+    <div class="brand">谣言瘟疫<span>看见信息的一生</span></div>
+    <div class="headline"><span id="scene-label">校园墙的一则消息</span><b id="rumor-title">信息从这里开始流动</b></div>
     <div class="controls">
-      <div id="clock">第 0.0 天</div>
-      <button id="btn-pause" title="暂停/继续">⏸</button>
-      <button id="btn-speed" title="切换速度">1×</button>
-      <button id="btn-restart" title="重新开始">↺</button>
+      <span id="clock">演化 0:00</span>
+      <details id="sound-settings"><summary id="btn-sound" aria-label="声音设置">♪</summary><div class="sound-panel"><button id="btn-mute">声音已开启</button><label for="volume">音量</label><input id="volume" type="range" min="0" max="1" step="0.05"></div></details>
+      <button id="btn-pause" aria-label="暂停传播" aria-pressed="false">Ⅱ</button>
+      <button id="btn-speed" aria-label="切换速度，当前 1 倍">1×</button>
+      <button id="btn-restart" aria-label="重新选择事件">↶</button>
     </div>
   </header>
-
-  <main id="stage">
-    <canvas id="net"></canvas>
-    <div id="fx-bar" style="display:none"></div>
-    <div id="target-chip" style="display:none"></div>
-
-    <aside id="stats">
-      <div class="res-row">💰 流量 <b id="st-traffic">150</b></div>
-      <div class="bar-row"><span>知晓率</span><div class="track"><div id="bar-aware" class="fill f-aware"></div></div><b id="v-aware">0%</b></div>
-      <div class="bar-row"><span>信服率</span><div class="track"><div id="bar-belief" class="fill f-belief"></div></div><b id="v-belief">0%</b></div>
-      <div class="bar-row"><span>舆论热度</span><div class="track"><div id="bar-heat" class="fill f-heat"></div></div><b id="v-heat">0%</b></div>
-      <div class="bar-row"><span>官方关注</span><div class="track"><div id="bar-att" class="fill f-att"></div></div><b id="v-att">0%</b></div>
-      <div class="bar-row"><span>封号风险</span><div class="track"><div id="bar-risk" class="fill f-risk"></div></div><b id="v-risk">0%</b></div>
-      <div class="param">官方公信力 <b id="p-trust">75%</b></div>
-      <div class="param">谣言强度 R=i×a <b id="p-r">--</b></div>
-      <div class="param">在线人数 <b id="p-pop">--</b></div>
-      <div id="legend">
-        <div><i class="lg lg-bigv"></i>大V</div>
-        <div><i class="lg lg-mkt"></i>营销号</div>
-        <div><i class="lg lg-crowd"></i>吃瓜群众</div>
-        <div><i class="lg lg-bot"></i>辟谣bot</div>
-        <div><i class="lg lg-mid"></i>理中客</div>
-        <div><i class="lg lg-leader"></i>群主</div>
-        <div><i class="lg lg-troll"></i>杠精</div>
-        <div><i class="lg lg-counselor"></i>辅导员</div>
-      </div>
-    </aside>
-
-    <aside id="log"><div class="log-title">舆情动态</div><div id="log-list"></div></aside>
+  <section id="duel-bar" aria-label="双方对抗状态">
+    <div class="side-status"><i id="player-mark" class="side-mark rumor"></i><div><span>你 · <b id="player-role">传谣者</b></span><small id="player-goal">选择身份后开始</small></div><strong id="player-resource">180<span>资源</span></strong></div>
+    <div class="duel-center"><span>在线相信率 <b id="belief-main">0%</b></span><div class="contest-track"><div id="belief-fill"></div><i id="threshold-marker"></i></div><small id="threshold-label">胜负分界 35%</small><small id="moderation-brief">封号概率 0% / 步 · 风险 0</small></div>
+    <div class="side-status opponent-status"><i id="opponent-mark" class="side-mark clarify"></i><div><span>人机 · <b id="opponent-role">辟谣者</b></span><small id="ai-status">正在观察传播</small></div><strong id="opponent-resource">180<span>资源</span></strong></div>
+  </section>
+  <main id="stage" tabindex="-1" aria-label="校园传播网络">
+    <canvas id="net" role="img" aria-label="校园信息传播网络，红色转述，绿色核实。点击人物查看状态。"></canvas>
+    <div class="stage-caption"><span class="live-dot"></span><span id="phase-label">最初的耳语</span></div>
+    <aside id="stats"><button id="btn-stats" aria-expanded="false" aria-controls="stats-detail">传播指标 ＋</button><div id="stats-detail">
+      <div class="stats-title">这条信息，传到哪了？</div>
+      <div class="stat-line"><span>已经听说</span><b id="v-aware">0%</b></div><div class="mini-track"><i id="bar-aware" class="aware"></i></div>
+      <div class="stat-line"><span>仍然相信</span><b id="v-belief">0%</b></div><div class="mini-track"><i id="bar-belief" class="rumor-fill"></i></div>
+      <div class="stat-line"><span>讨论热度</span><b id="v-heat">0%</b></div><div class="mini-track"><i id="bar-heat" class="heat-fill"></i></div>
+      <section class="moderation-panel" aria-label="传谣账号风控">
+        <div class="stat-line"><span>封号风险</span><b id="v-risk">0 / 100</b></div><div class="mini-track"><i id="bar-risk" class="risk-fill"></i></div>
+        <div class="stat-line"><span>实际封号概率</span><b id="v-ban-chance">0% / 步</b></div>
+        <div class="stat-line"><span>平台关注</span><b id="v-attention">0 / 100</b></div>
+        <small id="moderation-note"></small><span id="ban-count">已封禁 0 个账号</span>
+      </section>
+      <div class="formula-summary"><span>谣言强度 R = i × a</span><b id="v-strength">1.02</b><button id="btn-formulas">查看传播公式 ↗</button></div>
+      <div class="stats-foot"><span>在线人物 <b id="p-pop">0</b></span><span>历史峰值 <b id="p-peak">0%</b></span></div><div id="legend"></div>
+    </div></aside>
+    <button id="btn-log" aria-expanded="false" aria-controls="log">传播动态 ＋</button>
+    <aside id="log" aria-label="传播动态记录"><h2><span>校园墙 · 传播动态</span><button id="btn-log-close" aria-label="收起传播动态">×</button></h2><p class="log-subtitle">校园群聊 · 突发见闻 · 传播过程</p><div id="log-list" tabindex="0" aria-label="传播动态，可滚动查看较早记录"></div></aside>
+    <div id="fx-bar"></div>
+    <div id="view-controls" aria-label="网络视图"><button id="btn-zoom-out" aria-label="缩小网络">−</button><button id="btn-view-reset">还原</button><button id="btn-zoom-in" aria-label="放大网络">＋</button></div>
+    <p id="process-note" role="status">红色是转述，绿色是核实。信息抵达后，判断才会改变。</p>
+    <div id="action-flash" aria-live="polite"></div>
+    <section id="event-toast" class="hidden" aria-labelledby="ev-title"><span class="event-label">校园突发</span><h2 id="ev-title"></h2><p id="ev-context"></p><button id="btn-event-source" class="text-button">查看关联人物 ↗</button><p id="ev-countdown"></p><div class="event-actions"><button id="btn-event-pause" class="text-button">暂停思考</button><button id="btn-event-skip" class="text-button">不回应，继续观察</button></div><div id="ev-options"></div><p class="event-skip-note">到期视为不回应，没有额外扣费；已安排的其他后续照常发生。</p></section>
+    <section id="node-detail" class="hidden" aria-label="人物详情"><button id="btn-node-close" class="close-button" aria-label="关闭人物详情">×</button><div id="node-person"></div><div id="node-text"></div></section>
   </main>
-
   <footer id="hand">
-    <div class="hand-hint">出牌后自动补牌 · 花流量抽卡换稀有牌 · 灰色的人还没听说，谣言抵达才会被点亮</div>
+    <div class="hand-top"><div><b>你的手牌</b><span id="hand-hint">点牌看说明，出牌改变传播。</span></div><div class="hand-actions"><button id="btn-fuse">◇ 融牌</button><button id="btn-draw">＋ 抽牌 <span>35</span></button></div></div>
     <div id="cards"></div>
   </footer>
-
-  <div id="overlay-start" class="overlay">
-    <div class="panel">
-      <h1>谣言瘟疫</h1>
-      <p class="sub">把一条谣言投进模拟校园社交网络，看它像瘟疫一样扩散。</p>
-      <p class="desc">你是舆论场的操盘手。信谣的节点会持续产出<b>流量</b>，流量是你出牌的筹码：每张牌都会改变传播参数，但也会推高<b>官方关注度</b>与<b>封号风险</b>。试着达成不同结局：</p>
-      <ul class="endings-list">
-        <li>🔥 <b>全网皆知</b> —— 让超过三分之二的人同时信谣</li>
-        <li>🧊 <b>被扼杀在摇篮里</b> —— 早期彻底扑灭</li>
-        <li>🌪 <b>反转后二次爆发</b> —— 辟谣翻车，谣言变异反扑</li>
-        <li>🎭 <b>娱乐化消解</b> —— 传遍全网但没人信，被玩梗玩坏</li>
-      </ul>
-      <div class="rumor-pick">
-        <div class="pick-label">选择开局剧本（卡牌）：不同剧本 = 不同初始条件与谣言强度</div>
-        <div id="rumor-cards"></div>
-        <div class="pick-label" style="margin-top:14px">难度</div>
-        <div id="diff-row"></div>
-        <div class="pick-label" style="margin-top:14px">目标结局（可选，达成 +15 评分）</div>
-        <div id="target-row"></div>
-      </div>
-      <div id="ach-case"></div>
-      <button id="btn-start" disabled>投放谣言</button>
-    </div>
-  </div>
-
-  <div id="overlay-event" class="overlay hidden">
-    <div class="panel event-panel">
-      <div id="ev-icon"></div>
-      <h2 id="ev-title"></h2>
-      <p class="desc" style="text-align:center">⚡ 突发事件！游戏已暂停，请立刻做出选择：</p>
-      <div id="ev-opts"></div>
-    </div>
-  </div>
-
-  <div id="overlay-end" class="overlay hidden">
-    <div class="panel">
-      <div id="end-emoji"></div>
-      <h1 id="end-title"></h1>
-      <p id="end-desc" class="desc"></p>
-      <div id="end-stats"></div>
-      <div id="end-grade"></div>
-      <div id="end-ach"></div>
-      <button id="btn-again">再来一局</button>
-    </div>
-  </div>
 </div>
-<script src="game.js"></script>
+<dialog id="start-dialog" class="start-dialog">
+  <div class="start-heading"><div><h1>谣言瘟疫</h1><p>一则消息，两种方向。看见信息的一生。</p></div><span class="stamp">校园传播实验</span></div>
+  <canvas id="campus-demo" width="1200" height="380" role="img" aria-label="原创像素校园：消息在人群之间流动，核实从另一侧赶来。"></canvas>
+  <section id="scene-step"><div class="step-title"><h2>先选一则校园事件</h2><span>01 / 02</span></div><div id="rumor-cards"></div><div class="start-bottom"><p>几分钟，看见信息的一生。</p><button id="btn-start" class="primary-button">下一步：选择身份 →</button></div></section>
+  <section id="role-step" class="hidden"><div class="step-title"><h2>从哪个方向改变传播？</h2><span>02 / 02</span></div><div id="role-cards"></div><div class="start-bottom"><button id="btn-back" class="text-button">← 返回事件</button><button id="btn-deploy" class="primary-button" disabled>选择身份后开始</button></div></section>
+  <details class="experiment-settings" open><summary>难度与探索记录</summary><div id="diff-row"></div><p id="achievements-note"></p></details>
+</dialog>
+<dialog id="card-dialog" class="compact-dialog"><button id="btn-card-close" class="close-button" aria-label="关闭卡牌说明">×</button><div id="card-description"></div><p id="card-rule" role="status"></p><button id="btn-detail-play" class="primary-button">出牌</button><p class="dialog-note">传播仍在继续。<button id="btn-card-pause" class="text-button">暂停思考</button></p></dialog>
+<dialog id="formula-dialog" class="formula-dialog"><button id="btn-formulas-close" class="close-button" aria-label="关闭传播公式">×</button><span class="dialog-kicker">把传播过程，展开看。</span><h2>公式正在这张网络里发生</h2><p class="dialog-note">参数随对局更新。概率按一次模拟步计算，100 步为模拟 1 天。</p><div id="formula-content"></div><p class="dialog-note">R = i × a 是谣言强度指标，与状态 R、流行病学 R₀ 各自独立。</p><button id="btn-formulas-pause" class="text-button">暂停思考</button></dialog>
+<dialog id="fusion-dialog" class="fusion-dialog"><button id="btn-fusion-close" class="close-button" aria-label="取消融牌">×</button><span class="dialog-kicker">保留主牌，消耗辅牌</span><h2>让一张牌，更进一步。</h2><p class="dialog-note">两张同等级牌融合，最高 III 级。强化牌本局保留，冷却后可再用。<button id="btn-fusion-pause" class="text-button">暂停思考</button></p><div id="fusion-slots"></div><div id="fusion-materials"></div><div id="fusion-preview"></div><p id="fusion-rule" role="status"></p><button id="btn-fusion-confirm" class="primary-button" disabled>选择两张材料</button></dialog>
+<dialog id="end-dialog" class="end-dialog"><span id="end-verdict" class="verdict"></span><div class="end-heading"><canvas id="end-art" width="128" height="96" aria-hidden="true"></canvas><div class="end-copy"><p id="end-role-note"></p><h1 id="end-title"></h1></div><div class="grade-block"><b id="end-grade"></b><span id="end-score"></span></div></div><p id="end-desc"></p><div id="end-stats"></div><div class="chart-label"><b>这条信息的一生</b><span><i class="rumor-dot"></i>相信 <i class="aware-dot"></i>听说</span></div><div id="end-chart"></div><div id="end-timeline"></div><details class="score-details" open><summary>评分与本局探索记录</summary><p id="score-explanation"></p><div id="end-ach"></div></details><div class="end-actions"><button id="btn-again" class="primary-button">换个身份，再来一局</button><button id="btn-replay" class="text-button">同一网络，原身份重试</button><button id="btn-swap-network" class="text-button">同一网络，交换身份</button></div><p class="dialog-note">同网络重开保留事件、难度与种子，操作仍会改变结果。胜负与评分分别呈现。</p></dialog>
+<p id="announcement" class="sr-only" role="status" aria-live="polite"></p>
+<script src="simulation.js"></script><script src="pixel-art.js"></script><script src="audio.js"></script><script src="game.js"></script>
 </body>
 </html>

@@ -7,4 +7,6 @@
 Thumbs.db
 .DS_Store
 dist/
+test-results/
+__pycache__/
 备份-v11-触屏改版前/

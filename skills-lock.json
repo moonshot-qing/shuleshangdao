@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "verifiedOn": "2026-11-08",
+  "scope": "local Codex development only; no game runtime dependency",
+  "skills": [
+    {
+      "name": "frontend-design",
+      "repository": "https://github.com/anthropics/skills",
+      "path": "skills/frontend-design",
+      "commit": "2c5958ecac7cee2b583967a2c4981d0f4a75c579",
+      "repositoryStars": 189252,
+      "license": "Apache-2.0",
+      "installedPath": "C:\\Users\\58362\\.codex\\skills\\frontend-design",
+      "skillMdSha256": "d91970639e9f5c37682ac7ab60094d35f1c7c1f38d731bd56396563aee10c1d3"
+    },
+    {
+      "name": "webapp-testing",
+      "repository": "https://github.com/anthropics/skills",
+      "path": "skills/webapp-testing",
+      "commit": "2c5958ecac7cee2b583967a2c4981d0f4a75c579",
+      "repositoryStars": 189252,
+      "license": "Apache-2.0",
+      "installedPath": "C:\\Users\\58362\\.codex\\skills\\webapp-testing",
+      "skillMdSha256": "51b7349e77ec63b7744a6f63647e7566a0b4d2e301121cc10e8c2113af6556a2"
+    },
+    {
+      "name": "web-design-guidelines",
+      "repository": "https://github.com/vercel-labs/agent-skills",
+      "path": "skills/web-design-guidelines",
+      "commit": "1a2c79d4e6c4a2283dc2c614b6538cbe1ed5ca62",
+      "repositoryStars": 33710,
+      "license": "not-declared-at-selected-path",
+      "installedPath": "C:\\Users\\58362\\.codex\\skills\\web-design-guidelines",
+      "skillMdSha256": "f4647ca866a3accf763777f83e7682954f0187cd6bea7eea0399796652414e8f"
+    }
+  ]
+}

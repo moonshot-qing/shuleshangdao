@@ -1,0 +1,77 @@
+{
+  "version": "2026-11-09-art-refinement",
+  "source": "pixel-art.js",
+  "provenance": "Original integer-grid Canvas and SVG artwork authored within this project; no third-party assets.",
+  "license": "MIT (project license)",
+  "status": "integrated; reviewed in Chromium screenshots; real-device review pending",
+  "assets": [
+    {
+      "id": "campus-characters",
+      "function": "getSprite",
+      "types": ["bigv", "mkt", "crowd", "bot", "mid", "leader", "troll", "counselor"],
+      "logicalSize": [18, 24],
+      "canvasSize": [36, 48],
+      "states": [0, 1, 2],
+      "poses": [0, 1],
+      "frameCount": 48,
+      "pivotPixels": [18, 46],
+      "alpha": true,
+      "filter": "nearest",
+      "collision": "none; presentation only",
+      "uses": ["network", "chat-avatar", "node-detail", "role-portrait", "campus-demo", "ending"]
+    },
+    {
+      "id": "card-illustrations",
+      "function": "pixelIcon",
+      "variants": ["hot", "army", "control", "weaktie", "pr", "agenda", "lottery", "script", "debunk", "cold", "vaxx", "radio", "dig", "chot", "farm", "scout"],
+      "viewBox": [0, 0, 24, 24],
+      "displayPixels": [48, 24],
+      "pivotPixels": [12, 12],
+      "alpha": true,
+      "filter": "SVG crispEdges",
+      "collision": "none; host button owns interaction",
+      "uses": ["hand", "card-detail", "fusion", "role-badge"]
+    },
+    {
+      "id": "scenario-thumbnails",
+      "function": "campusThumbnail",
+      "variants": ["campus-stage", "library", "campus-store"],
+      "viewBox": [0, 0, 64, 32],
+      "pivotPixels": [32, 32],
+      "alpha": true,
+      "filter": "SVG crispEdges",
+      "collision": "none"
+    },
+    {
+      "id": "opening-courtyard",
+      "function": "drawCampus",
+      "variants": ["campus-stage", "library", "campus-store"],
+      "logicalSize": [600, 190],
+      "canvasSize": [1200, 380],
+      "pivotPixels": [600, 380],
+      "alpha": false,
+      "filter": "nearest",
+      "animation": "message travel and two anchored character poses; static in reduced motion",
+      "collision": "none"
+    },
+    {
+      "id": "ending-archive",
+      "function": "drawResult",
+      "variants": ["rumor-won", "rumor-lost", "clarify-won", "clarify-lost"],
+      "logicalSize": [64, 48],
+      "canvasSize": [128, 96],
+      "pivotPixels": [64, 88],
+      "alpha": true,
+      "filter": "nearest",
+      "collision": "none"
+    }
+  ],
+  "review": {
+    "generator": "scripts/preview_art.py",
+    "contactSheet": "test-results/art-review/art-contact-sheet.png",
+    "viewports": [[1440, 900], [390, 844], [360, 800], [844, 390]],
+    "fixtureSeed": 173,
+    "fixtureEndingIsForced": true,
+    "limitations": ["No physical-device or Safari review", "No player art-preference study", "No balance inference"]
+  }
+}

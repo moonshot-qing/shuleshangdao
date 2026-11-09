@@ -1,159 +1,152 @@
-# 交接文档 · HANDOVER
+# 维护交接 · 2026-11-09
 
-> 写给要接手/修改本项目的小伙伴。读完这份文档，你应该能在 30 分钟内定位到任何想改的地方。
-> 配套阅读：[README.md](README.md)（玩法与特性总览）
+最新美术精修：按 create-game-assets / game-ui-ux / game-feel 重画八类36×48人物、十六张24×24卡牌插画，接入三套校园建筑/缩略图、放大身份肖像与结算档案小景。人物服装与原类别/群聊名牌同色，状态独立标记；只在发言/实际变化后抬手机，减少动态静帧，视觉计时随新局重建。矮屏社群改横向展开，修复旧上下边界冲突导致人物挤一行的问题。只动表现，simulation.js 哈希保持539da6f8069c91b8805a67256912c4cdc1bad3c9f3c2968bd0dee21f1e41ee0c。语法、五视口基础及三视口专项浏览器通过，页面错误0；已查看桌面/手机/横屏截图。素材规范/来源见 assets/art-direction-brief.md、art-manifest.json；图鉴与四视口截图在 test-results/art-review/，preview_art.py 的结算是强制视觉样例，不是自然对局证据。未做真机/Safari与新平衡对照。
 
-## 1. 文件结构
+最新小修：用户要求略微优化平衡，不大改。冷处理遗忘率2%→1.6%、封禁概率系数0.0012→0.0010；水军/大V/反黑/关键节点费用分别变为100/100/90/75。其余规则和35%胜负分界保留。120局新种子同能力前后对照传谣8/30→10/30，尚不能称已平衡；130+89规则、30组场景及5视口基础/3视口专项回归通过。参数、证据与当前模型哈希见 CARD_BALANCE_REPORT.md 首节，旧报告保留为历史；小修前快照在 test-results/balance-before-micro/。
 
-```
-天池算法大赛/
-├── index.html          # 页面骨架：顶栏 / 画布 / 状态面板 / 舆情栏 / 手牌 / 5 个 overlay
-├── style.css           # eBoy 像素风 UI（有限色板，全部定义在 :root CSS 变量里）
-├── game.js             # 全部逻辑（~1600 行，单文件，无模块）
-├── README.md           # 项目简介
-├── HANDOVER.md         # 本文档
-├── .gitignore
-└── 备份-v6-像素版/      # 历史版本备份（已被 .gitignore 排除，可删）
-```
+最新验证：用户已重新要求验证及卡牌平衡审查。语法、130项规则、89项校园内容、30组新增场景通过；五视口基础回归及修复后三视口专项、4×约50.75秒完整实跑通过，页面脚本错误0。本次修复大V三级预览人数错误和移动端浮层遮挡/越界。1,680局固定种子、7,128个单卡受控分支及240局同能力参数隔离表明当前偏向辟谣，正式平衡参数未调。详见 CARD_BALANCE_REPORT.md；下面“跳过验证”均为历史记录，不是当前状态。
 
-## 2. 顶层架构
+最新追加：突发事件已细化为按局势加权触发、绑定社群人物、即时/后续效果预览和一次可追踪后续。保留原5类及5类自动事件；整改回访看热度，红包曝光可被核实/源头限制取消，后续进入动态和社群bot回应。窗口1.2模拟日，非模态，可就近暂停、不回应或查看人物。event/emergencyHistory/eventFollowups 随新局重建，AI只复制已公开安排的后续；自然结束等待后续，既有13.5日上限不变。用户要求跳过验证，本轮未执行；详见 CAMPUS_CONTENT.md 与 IMPLEMENTATION_REPORT.md 首节。
 
-两个独立的循环：
+最新一轮：已按“全部修改”完成AI统一行动评分、真实延迟反转试算、实时出牌风险预览、实际结果筛选复盘、手机卡面禁用原因、同网络交换身份。AI试算统一最多300步及三条独立随机试算，后续使用相同加权选牌策略；旧“两套评分比较行动/反转提前到0.25天”已删除。project 调用契约已同步到现有规则脚本。用户要求跳过验证，本轮未跑检查、浏览器、截图或固定种子对照，详见 IMPLEMENTATION_REPORT.md 首节。
 
-```
-rAF 渲染循环 frame()          150ms 模拟循环 setInterval(…, 150)
-├── resize 自检（画布尺寸变了→重建）     └── 若 running && !paused：每 tick 跑 speed 次 tick()
-├── physics()   力导向布局（纯视觉）               │
-└── draw()      全部绘制（纯渲染，可安全重入）      ▼
-                                            tick()  ← 游戏的心跳，所有数值逻辑在这
-```
+最新追加：已落实用户要求的六项进一步改进，并恢复此前双阵营改版移除的封号风险/平台关注/实际封禁及 UI。卡牌派送具备行动归因与抵达汇总，融合增加变化摘要，AI 已接入同入口的抽牌/融合决策，关键卡牌参数集中，人物剪影/社群符号和操作音效继续细化。具体规则见 IMPLEMENTATION_REPORT.md 首节。按用户要求跳过本次全部验证，历史1,680局与截图结果不覆盖当前源码。
 
-**铁律：数值逻辑只许写在 tick() 里，draw() 只做渲染**（draw 里的 `n.appear++`/`n.flash--` 是唯一例外——纯视觉状态）。draw 抛异常会杀死整个 rAF 链（画面永久冻结），改 draw 后务必手动调一次确认不抛。
 
-`tick()` 内部顺序（game.js 搜 `function tick`）：
+## 下一个对话先读这里
 
-1. 热度/传播/遗忘结算（酝酿期 `incubateUntil`、`boostInfUntil`、`silenced` 都在这生效）
-2. bot/理中客/辅导员澄清 → 生成**澄清粒子**（绿色）
-3. 遗忘、R→S 回流（0.0001，`!mutation` 时）
-4. 人群波次刷入（`pendingSpawns`）
-5. 主体反应语料（QUOTES）
-6. `updateParticles()` —— **粒子抵达结算**（感染/澄清在这里真正生效）
-7. counts() → 峰值统计 → 流量收入 → 关注度/封号风险 → 封号 → 官方强制介入 → 随机事件 → 紧急事件
-8. `checkEnding()` 结局判定 → `updateHUD()`
+项目目录：`D:/qoder项目/shuleshangdao`；上层工作区 `D:/qoder项目`。远端 `https://github.com/moonshot-qing/shuleshangdao.git`，比赛入口 `https://tianchi.aliyun.com/competition/entrance/532536`。
 
-## 3. 核心数据结构
+**当前交接状态：本地新增功能已做规则/浏览器验证，美术已精修并检查实际尺寸截图；卡牌参数已做上一轮小幅调整，仍偏向辟谣，不能称已平衡。最新结论见 CARD_BALANCE_REPORT.md、IMPLEMENTATION_REPORT.md 与 assets/art-direction-brief.md。**
 
-### node（nodes[i]，141 个，`add()` 工厂）
+先读本文件与 `AGENTS.md`；需要完整规则再看 `PROJECT_PLAN.md` / `DESIGN.md`，最新实测看 `IMPLEMENTATION_REPORT.md`。规划和 Skill 记录含历史阶段，不要把旧“尚未实施”或旧“默认折叠”当作当前状态。用户最新明确要求优先。
 
-| 字段 | 含义 |
-|---|---|
-| `type` | bigv / mkt / crowd / bot / mid / leader / troll / counselor |
-| `state` | 0=未闻(S) 1=信谣(I) 2=免疫(R)；bot 恒为 R |
-| `active` | 是否已上线（动态人群：false 时不参与一切模拟与渲染） |
-| `disc` | 是否已浮现（浮现机制：false 不绘制，相邻感染边 0.004/tick 概率浮现） |
-| `appear` | 浮现动画进度 0→1（draw 里推进，easeOutBack 弹出） |
-| `incubateUntil` | 酝酿期：信谣后隔 0.1-0.22 天才开始传播（防秒结局） |
-| `bought` / `boostInfUntil` | 大V公关卡：收买标记 / 传播力×2 到期日 |
-| `silenced` | 反黑调查卡：永久停止传播 |
-| `banned` | 封号（变灰 + 红叉，停止传播） |
-| `moves` / `boost` | 站位脉冲：状态转换时位移，终身限 3 次 |
-| `flash` | 命中闪黄框倒计时（纯视觉） |
+### 必须延续的用户约定
 
-**改动提醒**：新增节点字段时，必须在 `startGame()` 或 `buildNetwork()` 里初始化（`buildNetwork` 重建所有节点，字段写在 `add()` 工厂里最安全）。历史上 `controlUntil` 忘了重置导致跨局泄漏——新全局变量一律加进 `startGame` 的重置块。
+- 保留现有纸色、像素人物、中央网络与主体布局，美术继续精修；传播全过程是核心，不扩成长篇角色扮演。三分钟只是参考，完整流程优先。
+- **绝对不要防御性编程**：不加吞错、默认值兜底、重复校验、兼容层、预设未来的框架；玩法的资源/冷却/等级由统一入口表达。
+- **原版传播公式必须保留且真实生效**，界面可看实时参数。R=i×a、接触传播、沉默的螺旋、遗忘、公信力辟谣，详见 PROPAGATION_MODEL.md。
+- **保留校园群聊**：8类人物41条原对白、5类自动随机事件、5类选择突发。要有人物发言、接话、质疑与改口，不能再压缩成通用三句或数据报表，详见 CAMPUS_CONTENT.md。
+- **最新界面要求已经做完**：难度与探索记录、评分与本局探索记录、阶段变化默认展开；产品页面中的“虚构事件”“虚构对白”“简化模拟、不预测现实”等免责文案已删除。不要加回。声音按钮仍按点击打开设置。
+- 人机要能判断、组合与反制；复杂长期意图系统保留，不在未请求时添加行为树/通用策略框架。原评分与S/A/B/C保留，与阵营胜负独立。
+- 修改后实际跑浏览器看效果。纯文档交接不重复跑整套模拟；改公式或事件实效后才重跑相关平衡。
 
-### 其它全局
+### 已实现的完整玩法
 
-- `particles[]`：`{a, b, t, sp, kind:"rumor"|"clarify"}`，a/b 是节点下标，t∈[0,1]，**在 tick 里推进**（不要移到 rAF，自动化测试是同步跑 tick 的）
-- `bursts[]`：抵达/刷入的扩散环（纯视觉，draw 里推进）
-- `hand[]` / `cardState[id].cdUntil` / `pity` / `drawCount`：手牌与抽卡
-- `pendingSpawns[]`：待刷入节点下标，按 spawnDay 排序
-- `RUMORS[]`：三个开局剧本（**对象**，用 `.text/.imp/.traffic`…，不是字符串）
+三个校园事件 → 选择传谣者/辟谣者 → 与相反阵营人机对抗 → 卡牌说明、出牌、抽牌与融合 → 随机事件及群聊 → 自然收束 → 阵营胜负、原版评分、传播曲线和关键时刻 → 换身份/同网络重玩。
 
-## 4. 参数速查（调平衡从这里下手）
+16张牌、双方独立资源/冷却；强化牌II/III本局保留，冷却后重复用。初手兼顾行动/应对/资源。传播的听说与相信分开，证据保护有时限，消息抵达才结算。自然结算相信率35%为胜负分界。β=0.014，自然核实基础系数=0.014；不要直接套回早期版本参数。
 
-| 位置 | 参数 | 现值 | 作用 |
-|---|---|---|---|
-| 顶部常量 | `TICKS_PER_DAY` | 160 | 1 天 = 24 秒（150ms/tick） |
-| | `MAX_DAY` | 12 | 局长上限 ≈ 4.8 分钟 |
-| | `BASE_SPREAD` | 0.015 | 每条边每 tick 的基础传播率 |
-| TYPE | `inf` / `sus` | — | 各主体传染力 / 易感度 |
-| | `cell` | 2-4 | 像素小人尺寸（×LAYSCL 自适应） |
-| tick | `knownStreak` 判定 | ratio≥0.55 累计 50，低于阈值 −1 衰减 | 🔥全网皆知（**累计制**，连续制在人口稀释下不可达） |
-| | 摇篮判定 | `cardsPlayed≥1 && peak<25%` | 🧊 |
-| | 娱乐化判定 | aware≥50% && belief≤12% && peak∈[30%,55%] && 未反转 | 🎭 |
-| | 反转判定 | `reversalHappened && postRevPeak≥50%` | 🌪 |
-| | 官方强制介入 | attention≥80，冷却 4 天，翻车线 peak>45% | 注意力是传播的天然天花板 |
-| | 封号 | risk>40 后概率触发，risk 来自卡牌+attention>55 累积 | |
-| | 沉默的螺旋 | `voice = max(0.2, 1.2-belief)`，控评 ×0.3，辟谣热搜 +0.8 | 调制 bot/理中客澄清 |
-| | 人群刷入 | 5-9 波，时刻 1.5-11.2 天均匀随机 | 每轮随机性的主要来源 |
-| CARDS | `cost`/`cd`/`rarity` | — | 抽卡权重 `RARITY_W = {1:5, 2:2.5, 3:1}` |
-| 差异化 | `DIFFS` | 休闲/标准/大师 | spread/income/ban 三个乘数 |
+像素校园开场、人物两种姿态、卡牌符号、音效、手机人物详情/动态抽屉和横屏布局均已接入。原生HTML/CSS/JS+Canvas，零运行时依赖，无构建步骤。
 
-## 5. 平衡测试方法（强烈建议沿用）
+### 上轮验证证据（以下均为本次 Skill 改动之前）
 
-手动试玩调平衡又慢又不可复现。本项目的标准做法是**浏览器自动化跑策略**：
+| 项目 | 已确认结果 | 入口/证据 |
+| --- | --- | --- |
+| 核心规则 | 130项通过 | `scripts/verify_model.cjs` |
+| 原版内容 | 89项通过，41条对白逐字核对、5+5事件、20种身份/选择结算 | `scripts/verify_campus.cjs` |
+| 批量对局 | 1,680局；标准策略胜率39%–59% | `test-results/balance-report.json` |
+| 界面 | 5种视口，最新默认展开/去说明文案后已回归，页面错误0 | `test-results/duel/ui-report.json` |
+| 完整计时实跑 | 4×约50.73秒；5次自然事件、8类人物87条发言含43次接话 | `test-results/duel/demo-report.json` |
+| 录像 | 含实际合成音轨 | `test-results/duel/actual-with-sound.webm` |
 
-1. `python -m http.server 8765` 启动，用浏览器自动化（本项目用 MCP browser-use）打开页面
-2. `evaluate_script` 直接操作全局函数（它们都是 window 上的全局）：
+上轮已验证模拟脚本SHA256：`2e4c76efb682059692f6e8203e57ebe9675ce9739a92d0cb6fbc9b226ab83441`。历史批量、界面和实跑报告对应此模型，不对应本次修改后的 simulation.js。
 
-```js
-// 模板：跑一局“策略”并返回结局
-const run = (strategy, ru, di) => {
-  diffIdx = di; rumorIdx = ru; startGame();
-  let steps = 0;
-  while (running && steps < 2600) {          // 12天×160tick 上限
-    if (modalOpen) document.querySelector('#ev-opts .ev-opt').click(); // 处理紧急事件
-    strategy(); tick(); steps++;
-  }
-  return { title: document.getElementById('end-title').textContent,
-           peak: (peakRatio*100).toFixed(0)+'%', endDay: day.toFixed(1) };
-};
-// 手牌是随机的，测试时直接往里塞牌：
-const give = id => { if (!hand.includes(id)) hand.push(id); };
+**录像录于最后一轮“默认展开/删除说明文案”之前**，玩法和模型仍相同；最新界面以当前源码、最新 `ui-report.json` 和 `start-*.png` / `ending-desktop.png` 等回归截图为准。内容遍历的 `campus-content-*.png` / `campus-chat-*.png` 有主动构造状态，不能冒充自然实跑截帧。
+
+边界：策略胜率不是实际玩家胜率；该批量对局的选择突发按到期略过处理，20种选择单独验证。手机仅为浏览器仿真视口，真实手机/Safari、实际200%缩放、首次用户试玩、公网发布和参赛提交仍未完成。复杂长期意图保持保留项。
+
+### 运行、验证与本地状态
+
+交接时 `http://127.0.0.1:8876/` 实测返回200。该服务依赖本机进程，换对话后可先访问；若服务已停，在项目目录执行：
+
+```powershell
+Set-Location 'D:\qoder项目\shuleshangdao'
+python -m http.server 8876 --bind 127.0.0.1
 ```
 
-3. 四条基准策略：`known`（hot+army+control 速攻）、`cradle`（cold+早辟谣）、`rebound`（扩散过半后辟谣钓翻车）、`meme`（热到 40% 急停后干净澄清）。**每条至少跑 3 局**看胜率，目标：全部结局可达、known≈50-75%、无牌局不能误触任何主动结局。
-4. **跑完测试必须 `localStorage.removeItem('rumorPlagueAch')`**，否则玩家开局就是满成就墙。
+也可直接打开 `index.html`。测试使用本机Node、Python Playwright与Chrome，不是游戏依赖：
 
-## 6. 已知坑（前人踩过的）
+```powershell
+node --check simulation.js
+node --check game.js
+node --check pixel-art.js
+node --check audio.js
+node scripts/verify_model.cjs
+node scripts/verify_campus.cjs
+node scripts/balance.cjs
+python scripts/verify_experience.py
+python scripts/verify_experience.py --demo
+```
 
-| 坑 | 症状 | 规避 |
-|---|---|---|
-| per-game 全局未重置 | 上一局的效果延续到下一局 | 新全局变量一律加入 `startGame()` 重置块 |
-| `resize()` 早于 `buildNetwork()` | SPACING 按 0 节点算，布局崩 | 初始化顺序：buildNetwork → resize |
-| 粒子推进放在 rAF | 同步测试时粒子永远不前进 | 保持 `updateParticles()` 在 tick 里 |
-| draw() 抛异常 | rAF 链死亡，画面永久冻结 | 改 draw 后手动 `draw()` 一次验证 |
-| rAF 被节流 | 隐藏页面里画面“冻结” | 测试环境假象，用像素采样/逻辑验证，别信肉眼 |
-| localStorage 污染 | 开局满成就 | 测试后清 `rumorPlagueAch` |
-| `evaluate_script` 超时 | 内嵌浏览器脚本 15s 上限 | 长等待拆成多次调用 |
-| `RUMORS` 当字符串用 | 日志显示 [object Object] | 它是对象数组，用 `.text` |
+浏览器脚本自带临时服务器；默认Chrome：`C:/Program Files/Google/Chrome/Application/chrome.exe`。录像需要Playwright FFmpeg：`C:/Users/58362/AppData/Local/ms-playwright/ffmpeg-1013/ffmpeg-win64.exe`。`--demo`生成视频/音轨，当前含声音成片已另外合并；重新录制后不要继续使用旧成片。
 
-## 7. 修改指南（step by step）
+**本次仓库同步以 `6a1d474dec7ed908b9a4e60067858552e5271f1e` 为旧版基线，目标为 `origin/main`（https://github.com/moonshot-qing/shuleshangdao）。** `simulation.js`、`pixel-art.js`、`audio.js`、assets、scripts和维护文档均属于正式实现，应一并提交；最新提交以 `git log -1` 为准。不要reset/clean或把旧版覆盖回来。测试结果、视频及历史备份被Git忽略，仍保存在本地；仓库同步与公网部署分别记录。
 
-### 加一张新卡牌
-1. `CARDS[]` 里加一个定义：`{ id, icon, name, cls, cost, cd, rarity, eff }`（id 全局唯一）
-2. `playCard()` 里加 `else if (id === "…") { …效果… }`（可以用 `give/hand` 之外的全部全局；生成粒子用 `particles.push({a, b, t:0, sp:0.05, kind:"rumor"|"clarify"})`）
-3. `style.css` 加 `.card.c-你的id { background; }` 配色
-4. 用第 5 节的方法测：塞牌→打一局→看结局分布没被破坏
+当前交接源码与小型验证报告快照：`D:/qoder项目/交接归档/shuleshangdao-handover-20261109.zip`；快照内 `HANDOVER_MANIFEST.json` 记录Git基线与逐文件SHA256。完整Git工作目录和大体积录像仍在项目本地原位置。本次整理仅更新交接文档。
 
-### 加一类新主体
-1. `TYPE` 加条目（name/color/r/inf/sus/cell）
-2. `SPRITES` 加像素画（字符串矩阵，`O`描边 `W`白 `A`类型色 `B`状态色，宽度不齐会自动补点）
-3. `buildNetwork()` 加生成数量与连边规则；`TRAFFIC_RATE/BURST` 加流量参数；决定初始是否可见（`add()` 里的 `pub` 列表）
-4. 想要专属机制 → 在 tick 的对应环节加（参考杠精压制 bot / 辅导员无视野澄清）
-5. `QUOTES` 加语料、`index.html` 图例加一行、CSS 加 `.lg-xxx`
-6. **注意总人数变化会影响 SPACING 与所有比率**——改完跑一轮平衡
+旧回退快照：`C:/Users/58362/.codex/tmp/shuleshangdao-v21-before-build-20261109-132528.zip`；事件恢复前局部备份：`test-results/campus-chat/before-*`。
 
-### 加一个结局
-先想清楚它和现有五个结局的判定是否互斥（当前五个的判定顺序在 `checkEnding()`，从上到下短路）。加判定 → `ENDINGS` 加文案 → 成就/目标模式（`TARGETS`）同步 → 重新跑四策略平衡。**不要在没有平衡测试的情况下加结局。**
+### 后续工作入口
 
-### 加紧急事件
-`EMERGENCIES[]` 加 `{ icon, title, opts: [{label, effect}] }`，effect 里随便改全局，写一条 log。会自动进随机池。
+用户要求把重点放在指定 Skill 的实际改进，跳过验证，不做防御性编程。当前源码为本次改进版本，既有测试产物属于历史证据。后续按用户具体反馈继续打磨，不自动重复跑验证或重新规划。
 
-## 8. Roadmap（未实现的想法）
+---
 
-- 更多紧急事件与主体语料
-- 像素小人第二帧动画（行走/说话）
-- 音效（BGM + 命中音）
-- 复盘画廊：结局后回放传播热力曲线
-- 移动端触控优化（现在捏合缩放未做）
+## 运行与文件
+
+双击 `index.html` 或 `python -m http.server 8765 --bind 127.0.0.1`。原生脚本按 simulation → pixel-art → audio → game 的顺序加载，无构建和运行依赖。
+
+| 文件 | 职责 |
+| --- | --- |
+| simulation.js | 场景、16 张牌、传播状态、双方资源/冷却、融合、人机、胜负与原评分 |
+| pixel-art.js | 原像素人物矩阵、两种姿态、状态标记、卡牌符号与校园开场 |
+| audio.js | 用户激活的像素音效、音量、静音与暂停/后台生命周期 |
+| game.js | Canvas 布局/绘制、双步骤开局、卡牌详情、融合面板、曲线与交互 |
+| style.css | 保留纸色与描边语言的桌面/手机布局 |
+| scripts/verify_campus.cjs | 原版41条对白、5+5事件、双身份选项及独立对白随机数 |
+| scripts/verify_model.cjs | 玩法规则、融合保留/冷却、确定性与人机不读取隐藏手牌 |
+| scripts/balance.cjs | 固定种子、身份/场景/难度、策略与融合对照 |
+| scripts/verify_experience.py | 真实浏览器界面回归、截图与完整实跑录像 |
+
+## 模型与状态
+
+`Simulation` 必须由 `{seed, scenario, difficulty, role}` 创建。所有配置、牌定义和生命周期明确；程序数据错误直接暴露，不添加兜底、吞错或重复校验。
+
+每个人物有独立 `id`，类型、社群、在线状态、是否听说 `aware`、判断 `state`（0=尚未相信，1=相信，2=不再相信/已核实）、证据保护到期、源头抑制到期与传播加成到期。信息抵达即计入听说，是否被说服另行计算。
+
+`Simulation.nodes/edges/adj/particles` 是模拟数据。视觉坐标与速度单独存在 `game.js` 的 `visuals` 中，物理布局和帧率不消耗模拟随机数。修改画面不能改变传播结果。
+
+时间步 150ms，100 步对应一个模拟日；自动事件/选择突发从第11日起停止开启，第12日起停止新AI行动，等待已有传播与反转，最迟 13.5 日记录余波。实际秒数不强制截断；暂停与后台不推进模拟。
+
+原版传播关系由 `formulas()` 统一生成，`step()`、`apply()`、公式面板共同使用；自然核实在 `naturalClarify(source,target,formulas)` 中，杠精压制按接收者邻居判断。新增 `ambiguity` 与 `memeUntil` 必须随人机公开状态副本复制。详细出处与校准见 PROPAGATION_MODEL.md。
+
+`apply()` 返回干预说明，由 `play()` 写入卡牌动态；目标仍在途中时只写“正在派送”。`activity` 收集抵达、判断转变、遗忘与上线次数，`reportActivity()` 每50步记录默认展开、可手动收起的阶段观察。汇总不抽取随机数，也不改变传播状态；人机副本单独初始化统计，不共享真实记录。次数使用“人次”，新增听说使用首次接触人数。
+
+原版 `QUOTES` 完整保留，`chatLines/say/conversation` 按人物身份与当前判断生成群聊和相邻人物回复；使用独立 `chatRandom`，不消耗传播/事件随机数。`CAMPUS_EVENTS/campusEvent` 为5类自动事件，`EMERGENCIES/chooseEvent` 为5类选择突发，使用 `eventRandom`。AI公开副本复制当前 `examUntil/mediaUntil/memeUntil`，禁用未来自动事件、突发与对白；不能窥读真实的未来事件序列。详情和89项保留验证见 CAMPUS_CONTENT.md。
+
+## 卡牌与融合
+
+每张手牌为 `{uid, id, level}`。`CARD_BY_ID` 是定义，`cardStats` 与 `cardDescription` 用同一份数据生成费用、对象数量、持续时间与说明。名称可以重复，实例 ID 不重复；冷却按定义 ID 共享。
+
+只有 `playProblem/play`、`fusionProblem/fuse` 和 `draw` 负责对应玩法判断与结算。界面和人机复用它们，不另写一套规则。资源不足、冷却、等级和暂停属于玩法条件，统一表达一次。
+
+I 级牌打出后随机补一张 I 级牌；II/III 级强化牌本局保留，受同名冷却约束。融合消耗辅牌，不自动补齐手牌；额外抽牌 35 资源，最多 5 张。融合费用 30/45；升级出牌费用 +12/+24，数量约 +30%/+60%，持续时间小幅增长。反转的准备时间不随强化延长。
+
+## 人机
+
+休闲使用较慢的局势权重选择；标准/大师在公开状态的副本中作三次短时牌效试算。试算使用独立随机源、冻结未上线人物、不复制对方手牌，关闭副本里的 AI/随机事件。候选行动不会修改真实局势。读取真实未来随机序列或对方手牌属于规则错误。
+
+人机比较局势变化与费用，会避免重复覆盖持续效果，并考虑己方手牌可完成的热搜/水军和冷处理/辟谣组合。复杂长期意图仍是后续项。改评估参数后运行策略对照，不能凭单场录像宣称智能提高。
+
+## 界面、音频与重开
+
+原生 dialog 管理开局、说明、融合与结算；对局在说明/融合中继续，面板提供暂停思考。突发事件是非模态提示，可选择、略过或自动过期。
+
+声音只在点击开始/声音设置后激活，现代浏览器直接使用 AudioContext。程序错误不吞掉；首次设置初始化、静音、暂停与后台按正常状态实现。
+
+`startGame` 重建整局 Simulation，重置视觉、缩放、选择、日志游标、计时与速度。声音设置与探索记录保留于 localStorage。
+
+## 验证和当前交付
+
+详见 `IMPLEMENTATION_REPORT.md`。本地截图、报告、录像在 `test-results/`，不进 Git。本段为初次本地实现时的历史状态；当前仓库同步见上文，公网部署尚未执行。只完成实际测过的设备与流程，不把仿真视口说成手机真机测试。
