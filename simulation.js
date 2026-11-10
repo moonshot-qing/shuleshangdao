@@ -150,7 +150,7 @@ const CARD_THEORY={
   debunk:`公信力模型：P=${CARD_PARAMS.debunk.trustCoefficient}T+${CARD_PARAMS.debunk.baseChance}，冷处理中额外 +${CARD_PARAMS.debunk.coldChance}。`,cold:`遗忘机制：每步自然退出信谣的概率由 0.0028 提高到 ${CARD_PARAMS.cold.forget}。`,
   vaxx:'McGuire 接种理论：预先接触证据，阶段性降低被说服的可能。',radio:'使用与满足：定向满足求证需求，核实抵达后才改变判断。',
   dig:'信息源可信度：限制关键传播源的输出，而非直接改变全部受众。',chot:`沉默的螺旋：V +${CARD_PARAMS.chot.voiceDelta}（最高${CARD_PARAMS.chot.voiceCap}），辟谣bot核实效率再 ×${CARD_PARAMS.chot.multiplier}。`,
-  farm:'传播资源：资源服务于行动，不直接等同于相信人数。',scout:'创新扩散：意见桥梁的网络位置影响信息到达范围。'
+  farm:'传播资源：积累资源，为后续出牌和组合创造空间。',scout:'创新扩散：意见桥梁的网络位置影响信息到达范围。'
 };
 const CARD_DEFS = [
   { id:"hot", name:"加热搜", side:"rumor", cost:85, cd:2, rarity:1, category:"持续", amount:0, duration:2.3, effect:"转述效率 ×1.65，讨论热度 +25%", target:"全网络", combo:"先加热搜，再用水军或弱连接扩大传播。", counter:"冷处理降低传播，辟谣热搜增加核实。" },
@@ -174,7 +174,7 @@ const CARD_BY_ID = Object.fromEntries(CARD_DEFS.map(c => [c.id,c]));
 const ENDINGS = {
   known:{icon:"✹", title:"全网皆知", desc:"信息曾越过最初的圈层，被大量人物同时相信。热度过后，这次传播仍留下了痕迹。"},
   cradle:{icon:"❄",title:"被扼杀在摇篮里",desc:"证据赶在大规模转述之前抵达，传闻在最初几个圈层里失去了动力。"},
-  rebound:{icon:"↻",title:"反转后二次爆发",desc:"最初的判断被修正后，信息又沿新的路径传播。一次回应，并不等于过程已经结束。"},
+  rebound:{icon:"↻",title:"反转后二次爆发",desc:"最初的判断被修正后，新的说法又沿群聊与校园墙传开，带起第二轮转述。"},
   meme:{icon:"◈",title:"娱乐化消解",desc:"听说的人很多，相信的人却越来越少。信息仍被讨论，最初的说法已经不再有同样的说服力。"},
   fade:{icon:"✦",title:"悄然平息",desc:"转述逐渐减少，核实与遗忘慢慢占据上风。多数人回到日常，传闻悄然退场。"},
   stalemate:{icon:"…",title:"余波未尽",desc:"主要传播已经走完，仍有小圈层保留着不同判断。这次对抗结束，信息的余波还没有完全消失。"}
@@ -231,8 +231,7 @@ function cardRiskDelta(card,side) {
 }
 function cardRisk(card,side) {
   const risk=cardRiskDelta(card,side);
-  if(risk!==0)return `传谣账号封号风险 ${risk>0?'+':''}${risk} 点（限制在 0–100）；实际概率另由风险阈值计算。`;
-  return '不直接改变封号风险。';
+  return risk===0?'':`封号风险 ${risk>0?'+':''}${risk}。`;
 }
 function cardCombo(card) {
   const s=cardStats(card);
@@ -538,7 +537,7 @@ class Simulation {
     for(const p of this.particles.slice(queued)){p.action=action;action.sent++;action.pending++;action.targets.push(p.b);}
     if(d.id==='script')this.reversalAction=action;
     if(card.level===1){a.hand.splice(a.hand.indexOf(card),1);a.hand.push(this.drawCard(a));}
-    this.record(`${a===this.player?'你':'人机'}使用「${d.name}」${card.level>1?' '+['','I','II','III'][card.level]:''}\n${detail}\n${cardRisk(card,a.side)}`, 'card',a.side).card=d.id;
+    this.record(`${a===this.player?'你':'人机'}使用「${d.name}」${card.level>1?' '+['','I','II','III'][card.level]:''}\n${detail}${cardRiskDelta(card,a.side)!==0?'\n'+cardRisk(card,a.side):''}`, 'card',a.side).card=d.id;
     this.revision++;
     return '';
   }
@@ -1079,11 +1078,11 @@ class Simulation {
   finish() {
     if(this.event!==null)this.skipEvent('ended');
     this.ended=true;this.sample();
-    for(const item of this.eventFollowups)this.record(`${EMERGENCIES[item.id].title[item.role]} · 尚待后续\n本局已收尾，原定第 ${item.due.toFixed(1)} 天的后续尚未发生，不计为已经生效。`,'event-followup',item.role);
+    for(const item of this.eventFollowups)this.record(`${EMERGENCIES[item.id].title[item.role]} · 尚待后续\n本局已收尾，原定第 ${item.due.toFixed(1)} 天的后续尚未发生。`,'event-followup',item.role);
     for(const action of this.actions)if(!action.fusion&&action.pending>0){
-      this.record(`「${CARD_BY_ID[action.card].name}」收尾记录\n已抵达 ${action.arrived} 份、改变判断 ${action.changed} 人；仍有 ${action.pending} 份在途，不计为成功。`,'delivery',action.side).card=action.card;
+      this.record(`「${CARD_BY_ID[action.card].name}」收尾记录\n已抵达 ${action.arrived} 份、改变判断 ${action.changed} 人；仍有 ${action.pending} 份在途。`,'delivery',action.side).card=action.card;
     }
-    if(this.reversalAction!==null)this.record(`「反转剧本」仍在酝酿\n本局已收尾，未派送的反转不计为成功。`,'delivery','rumor').card='script';
+    if(this.reversalAction!==null)this.record(`「反转剧本」仍在酝酿\n本局已收尾，反转尚未派送。`,'delivery','rumor').card='script';
     const c=this.counts(),ratio=c.i/c.total;
     let key='stalemate';
     if(this.reversed&&this.postPeak>=.35)key='rebound';

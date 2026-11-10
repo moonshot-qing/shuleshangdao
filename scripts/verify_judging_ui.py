@@ -104,6 +104,7 @@ def main():
             assert not page.locator('#end-comparison').is_visible()
             assert page.locator('#score-parts span').count()>=2
             assert '档案' in page.locator('#end-assessment').text_content()
+            assert page.locator('#btn-swap-network').evaluate('el=>{const r=el.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight;}')
             page.screenshot(path=str(out/f'ending-{width}.png'),animations='disabled')
             page.locator('#btn-swap-network').click();page.wait_for_function('running')
             assert page.evaluate("lastOptions.seed===173 && !match.scenarioResolved && focusedAction===0 && impactNodes.size===0 && !readingPaused")

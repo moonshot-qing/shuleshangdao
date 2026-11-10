@@ -4,7 +4,7 @@
 
 先读本文件与 AGENTS.md，再按需求读 PROJECT_PLAN.md、DESIGN.md、SKILLS_APPLIED.md。实际实现与验证见 IMPLEMENTATION_REPORT.md，平衡证据见 CARD_BALANCE_REPORT.md；规划、历史报告与当前实现应分开看。
 
-项目为原生 HTML / CSS / JavaScript + Canvas，零运行时依赖、无构建步骤。保留暖纸色、像素风、中央网络、左侧指标、右侧动态、底部手牌。仓库：https://github.com/moonshot-qing/shuleshangdao ，本轮从8df3085继续修改。
+项目为原生 HTML / CSS / JavaScript + Canvas，零运行时依赖、无构建步骤。保留暖纸色、像素风、中央网络、左侧指标、右侧动态、底部手牌。仓库：https://github.com/moonshot-qing/shuleshangdao ，功能评审轮以8df3085为基线，最新UI复查以5bd9e4为基线。
 
 ## 必须延续
 
@@ -17,6 +17,8 @@
 - 核心修改做语法与体验检查并查看桌面/手机截图；平衡用固定种子，仿真、真人、实际部署分别记录。
 
 ## 当前实现
+
+2026-11-10 界面复查已完成：胜负先于档案评级展示，评分仍默认展开；结算初始焦点在标题、滚动从顶部开始，底部固定换身份重玩/原身份重试/重新选择事件。融合确认与返回也固定可见，费用明确；预览风险标为强化牌“出牌时”的变化。手机手牌效果、风险分行；网络左右键查看人物并播报，关闭后返回网络焦点。删去重复无效果/免责式说明，保留必要玩法限制。新增六视口检查 scripts/verify_ui_layout.py；本次未调平衡参数。
 
 ### 首次上手
 
@@ -72,6 +74,7 @@ node scripts/verify_judging.cjs
 python scripts/verify_experience.py
 python scripts/verify_iteration_ui.py
 python scripts/verify_judging_ui.py
+python scripts/verify_ui_layout.py
 node scripts/verify_judging_balance.cjs compare 10 9831
 python scripts/verify_experience.py --demo-only --demo-seed 173
 ```

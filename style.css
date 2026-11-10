@@ -54,6 +54,7 @@ button:focus-visible,summary:focus-visible,input:focus-visible,a:focus-visible {
   outline:3px solid var(--blue);
   outline-offset:4px
 }
+#net:focus-visible {outline:3px solid var(--blue);outline-offset:-4px;}
 button:active:enabled {
   transform:translateY(1px)
 }
@@ -215,6 +216,7 @@ button:active:enabled {
 }
 .side-status strong {
   margin-left:auto;
+  flex-shrink:0;
   font-size:23px;
   line-height:1;
   font-variant-numeric:tabular-nums
@@ -232,7 +234,9 @@ button:active:enabled {
 }
 .opponent-status strong {
   margin-left:0;
-  margin-right:auto
+  margin-right:auto;
+  color:#686b60;
+  font-size:18px
 }
 .duel-center {
   text-align:center;
@@ -634,6 +638,7 @@ button:active:enabled {
 }
 .card-status {display:block;min-height:16px;margin-top:5px;font-size:10px;line-height:1.5;color:#35714d;white-space:normal;}
 .card-status.unavailable {color:#9c493e;}
+.card-status.risk-cost {color:#9a5738;}
 .card-face:hover:enabled {
   background:#ffffff44
 }
@@ -1006,8 +1011,10 @@ dialog[open] {
 .card-actions .dialog-note {display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;}
 .card-actions .dialog-note span {flex-basis:100%;}
 .card-actions .text-button {min-height:30px;padding:3px 0;}
-#end-intervention small {flex-basis:100%;font-size:10px;color:var(--muted);}
-.end-assessment {font-size:12px;line-height:1.8;padding:10px 12px;border-left:3px solid var(--yellow);background:#f5efdd;margin-bottom:14px;}
+.end-assessment {font-size:11px;line-height:1.8;padding:8px 10px;border-left:3px solid var(--yellow);background:#f5efdd;margin-bottom:8px;color:var(--ink);}
+.fusion-actions {position:sticky;bottom:-27px;margin:14px -27px -27px;padding:0 27px 16px;background:var(--panel);border-top:1px solid var(--line);z-index:2;}
+.fusion-actions .text-button {display:block;margin-top:8px;min-height:36px;}
+.fusion-dialog {scroll-padding-bottom:150px;}
 #end-intervention {display:flex;flex-wrap:wrap;gap:7px 14px;font-size:11px;margin:12px 0 18px;}
 #end-intervention b {flex-basis:100%;}
 #score-parts {display:grid;grid-template-columns:1fr 1fr;gap:7px 14px;font-size:11px;margin:12px 0;}
@@ -1225,16 +1232,18 @@ dialog[open] {
   font-size:10px
 }
 .end-dialog {
-  width:min(670px,94vw)
+  width:min(670px,94vw);
+  scroll-padding-bottom:130px
 }
 .verdict {
   display:inline-block;
   padding:5px 10px;
-  font-size:11px;
+  font-size:15px;
+  font-weight:700;
   border:1px solid var(--green);
   color:var(--green);
   background:#edf4e9;
-  margin-bottom:14px
+  margin:8px 0 0
 }
 .verdict.lost {
   color:#ad4853;
@@ -1253,6 +1262,7 @@ dialog[open] {
   font-size:29px;
   margin-top:6px
 }
+#end-title:focus {outline:none;}
 #end-role-note {
   font-size:10px;
   color:#77786c
@@ -1265,7 +1275,7 @@ dialog[open] {
 }
 .grade-block b {
   display:block;
-  font-size:45px;
+  font-size:30px;
   line-height:1.1;
   color:#a48236
 }
@@ -1354,12 +1364,20 @@ dialog[open] {
   margin-top:10px
 }
 .end-actions {
-  display:flex;
-  flex-wrap:wrap;
+  display:grid;
+  grid-template-columns:minmax(0,1.8fr) 1fr 1fr;
   align-items:center;
-  gap:18px;
-  margin-top:18px
+  gap:8px;
+  position:sticky;
+  bottom:-27px;
+  margin:18px -27px -27px;
+  padding:12px 27px 14px;
+  border-top:1px solid var(--line);
+  background:var(--panel);
+  z-index:2
 }
+.end-actions button {min-width:0;min-height:44px;text-align:center;font-size:12px;padding:8px 4px;}
+.end-actions .dialog-note {grid-column:1/-1;margin:0;font-size:10px;line-height:1.6;}
 #stats {max-height:calc(100% - 80px);overflow:auto;overscroll-behavior:contain;}
 .moderation-panel {margin-top:12px;padding-top:10px;border-top:1px dashed #c9c2af;}
 .moderation-panel small {display:block;font-size:10px;line-height:1.6;color:#646457;margin:7px 0;}
@@ -1381,6 +1399,9 @@ dialog[open] {
 .role-card>.role-portrait {display:block;width:128px;height:112px;image-rendering:pixelated;margin:0 auto 6px;}
 .role-card>svg {position:absolute;right:12px;top:12px;width:28px;height:28px;}
 .card-risk-preview {padding:12px;margin:12px 0;border-left:3px solid #ad6948;background:#fff1dc;color:#6b432e;font-size:12px;line-height:1.8;}
+.card-risk-preview b,.card-risk-preview span,.card-risk-preview small {display:block;}
+.card-risk-preview b {font-size:11px;margin-bottom:3px;}
+.card-risk-preview small {font-size:10px;margin-top:3px;}
 .resolution-note {background:#f4f1e7;border:1px solid #d6cebb;padding:12px;margin-bottom:16px;font-size:12px;}
 .fusion-comparison {display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:left;}
 .fusion-comparison section {min-width:0;padding:12px;border:1px solid #d2c9b5;background:#f5f0e5;}
@@ -1401,8 +1422,10 @@ dialog[open] {
   .role-card>.role-portrait {width:96px;height:84px;}
   #btn-card-close,#btn-fusion-close {min-width:44px;min-height:44px;}
   .detail-facts b {font-size:15px;}
-  .end-actions {gap:8px;}
-  .end-actions button {width:100%;min-height:44px;text-align:center;}
+  .end-actions {grid-template-columns:1fr 1fr;bottom:-20px;margin:18px -20px -20px;padding:10px 20px 12px;gap:4px 10px;}
+  .end-actions .primary-button {grid-column:1/-1;}
+  .end-dialog {scroll-padding-bottom:170px;}
+  .fusion-actions {bottom:-20px;margin:14px -20px -20px;padding:0 20px 12px;}
 }
 .fusion-celebrate {
   animation:fuse-in .6s ease-out
@@ -1483,7 +1506,7 @@ dialog[open] {
   }
   #duel-bar {
     grid-template-columns:1fr 1fr;
-    gap:6px 20px;
+    gap:6px 14px;
     padding:8px 12px
   }
   .duel-center {
@@ -1505,15 +1528,17 @@ dialog[open] {
     font-size:8px
   }
   .side-status {
-    gap:6px
+    gap:5px
   }
   .side-status small {
     font-size:9px;
     max-width:145px
   }
+  .side-status strong span {font-size:8px;white-space:nowrap;}
   .side-status strong {
     font-size:18px
   }
+  .opponent-status strong {font-size:15px;}
   .side-mark {
     height:29px;
     width:7px
@@ -1643,7 +1668,7 @@ dialog[open] {
     font-size:13px
   }
   .card-effect {
-    font-size:9px
+    font-size:11px
   }
   .card-head svg {
     width:48px;
@@ -1653,7 +1678,8 @@ dialog[open] {
     margin:0 8px
   }
   .card-play {
-    font-size:9px
+    font-size:11px;
+    min-height:36px
   }
   .card-rarity {
     font-size:7px
@@ -1841,8 +1867,7 @@ dialog[open] {
     gap:7px
   }
   .end-actions {
-    flex-wrap:wrap;
-    gap:10px
+    gap:4px 10px
   }
   .end-actions .primary-button {
     width:100%

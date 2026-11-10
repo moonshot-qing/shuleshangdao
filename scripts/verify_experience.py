@@ -138,7 +138,8 @@ def main():
             assert page.locator('#end-chart svg').count()==1
             assert page.locator('.score-details').evaluate('el=>el.open')
             page.screenshot(animations='disabled',path=str(out/'ending-desktop.png'))
-            page.locator('#btn-again').click();assert page.locator('#role-step').is_visible()
+            page.locator('#btn-again').click();assert page.locator('#scene-step').is_visible()
+            page.locator('#btn-start').click();page.locator('#role-rumor').click()
             page.locator('#btn-deploy').click();page.wait_for_function('running')
             assert page.evaluate("match.role==='rumor' && match.player.fused===0 && speed===1")
             page.clock.fast_forward(151000);assert page.evaluate('running && !match.ended')

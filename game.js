@@ -194,7 +194,7 @@ function renderCards() {
   lastHand=hand;
   $('cards').innerHTML=match.player.hand.map(card=>{
     const d=CARD_BY_ID[card.id],s=cardStats(card);
-    return `<article class="card ${d.side} ${card.level>1?'upgraded':''}" id="card-${card.uid}"><button class="card-face" data-detail="${card.uid}" aria-describedby="card-status-${card.uid}" aria-label="查看${d.name}的说明"><span class="card-head"><span class="card-art">${pixelIcon(d.id,48)}</span><span class="card-level">${levelName(card.level)}</span></span><span class="card-name">${d.name}</span><span class="card-effect">${cardDescription(card)}${cardRiskDelta(card,match.role)!==0?" · 封号风险 "+(cardRiskDelta(card,match.role)>0?"+":"")+cardRiskDelta(card,match.role):""}</span><span class="card-status" id="card-status-${card.uid}"></span></button><div class="card-bottom"><span class="card-rarity">${'◆'.repeat(d.rarity)}</span><button class="card-play" data-play="${card.uid}" aria-describedby="card-status-${card.uid}">出牌 ${s.cost}</button></div></article>`;
+    return `<article class="card ${d.side} ${card.level>1?'upgraded':''}" id="card-${card.uid}"><button class="card-face" data-detail="${card.uid}" aria-describedby="card-status-${card.uid}" aria-label="查看${d.name}的说明"><span class="card-head"><span class="card-art">${pixelIcon(d.id,48)}</span><span class="card-level">${levelName(card.level)}</span></span><span class="card-name">${d.name}</span><span class="card-effect">${cardDescription(card)}</span><span class="card-status" id="card-status-${card.uid}"></span></button><div class="card-bottom"><span class="card-rarity">${'◆'.repeat(d.rarity)}</span><button class="card-play" data-play="${card.uid}" aria-label="使用${d.name}，花费 ${s.cost} ${ROLES[match.role].resource}" aria-describedby="card-status-${card.uid}">出牌 ${s.cost}</button></div></article>`;
   }).join('');
   document.querySelectorAll('[data-detail]').forEach(b=>b.onclick=()=>openCard(Number(b.dataset.detail)));
   document.querySelectorAll('[data-play]').forEach(b=>b.onclick=()=>playCard(Number(b.dataset.play)));
@@ -204,7 +204,9 @@ function updateButtons() {
     const b=$(`card-${card.uid}`).querySelector('.card-play'),s=cardStats(card),problem=match.playProblem(match.player,card);
     b.disabled=problem!=='';b.title=problem;
     b.textContent=problem===''?`出牌 ${s.cost}`:'暂不可用';
-    const status=$(`card-status-${card.uid}`);status.textContent=problem===''?'就绪 · 点牌查看详情':problem;
+    const risk=cardRiskDelta(card,match.role),status=$(`card-status-${card.uid}`);
+    status.textContent=problem===''?(risk===0?'就绪':`封号风险 ${risk>0?'+':''}${risk}`):problem;
+    status.classList.toggle('risk-cost',problem===''&&risk>0);
     status.classList.toggle('unavailable',problem!=='');
   }
   $('btn-fuse').disabled=!running||match.ended||match.paused||match.player.hand.length<2;
@@ -224,11 +226,11 @@ function openCard(uid) {
 function updateCardDialog() {
   const card=match.player.hand.find(c=>c.uid===selectedCard),problem=match.playProblem(match.player,card,readingPaused);
   $('card-rule').textContent=problem;$('btn-detail-play').disabled=problem!=='';$('btn-detail-play').textContent=`${readingPaused?'继续并出牌':'出牌'} · ${cardStats(card).cost} ${ROLES[match.role].resource}`;
-  $('card-reading-state').textContent=readingPaused?'阅读期间已自动暂停；出牌或关闭后继续。':match.paused?'当前为手动暂停。':'传播正在继续。';
+  $('card-reading-state').textContent=readingPaused?'已自动暂停，出牌或关闭后继续。':match.paused?'当前为手动暂停。':'传播正在继续。';
   const preview=$('card-risk-preview');preview.hidden=cardRiskDelta(card,match.role)===0;
   if(!preview.hidden){
     const risk=match.riskPreview(card,match.role),pct=value=>(value*100).toFixed(2)+'%';
-    preview.textContent=`出牌后：封号风险 ${risk.before.toFixed(1)} → ${risk.after.toFixed(1)}；实际概率 ${pct(risk.beforeChance)} → ${pct(risk.afterChance)} / 步。${risk.crossed?'将越过封禁风险阈值。':''}${risk.targets===0?'当前没有可封禁目标，所以概率仍为 0；消息抵达后目标情况可能变化。':'按当前 '+risk.targets+' 个可封禁账号计算，实际概率会随局势变化。'}`;
+    preview.innerHTML=`<b>出牌后的封号变化</b><span>风险 ${risk.before.toFixed(1)} → ${risk.after.toFixed(1)}</span><span>概率 ${pct(risk.beforeChance)} → ${pct(risk.afterChance)} / 步</span><small>当前可封禁账号 ${risk.targets} 个${risk.crossed?' · 跨过风险阈值':''}</small>`;
   }
 }
 async function playCard(uid) {
@@ -258,13 +260,13 @@ function renderFusion() {
   else{
     const upgraded={...main,level:main.level+1};
     const cost=FUSION_COSTS[main.level];
-    $('fusion-preview').innerHTML=`<div class="fusion-delta" aria-label="强化变化">${cardUpgradeSummary(main).map(change=>`<span>${change}</span>`).join('')}</div><details class="fusion-full-rules"><summary>查看完整效果对照</summary><div class="fusion-comparison"><section><small>现在 · ${levelName(main.level)}</small><b>${cardStats(main).cost} 资源 / 次</b><p>${cardResolution(main,match.role)}</p></section><section class="fusion-result"><small>融合后 · ${levelName(upgraded.level)}</small><b>${cardStats(upgraded).cost} 资源 / 次</b><p>${cardResolution(upgraded,match.role)}</p></section></div></details><p class="fusion-receipt">保留：${CARD_BY_ID[main.id].name} · 消耗：${aux===null?'待选辅牌':CARD_BY_ID[aux.id].name}<br>支付 ${cost} 资源。共享冷却继承，不会刷新。<br>强化牌本局保留；融合不补牌。${cardRisk(upgraded,match.role)}</p>`;
+    $('fusion-preview').innerHTML=`<div class="fusion-delta" aria-label="强化变化">${cardUpgradeSummary(main).map(change=>`<span>${change}</span>`).join('')}</div><details class="fusion-full-rules"><summary>查看完整效果对照</summary><div class="fusion-comparison"><section><small>现在 · ${levelName(main.level)}</small><b>${cardStats(main).cost} 资源 / 次</b><p>${cardResolution(main,match.role)}</p></section><section class="fusion-result"><small>融合后 · ${levelName(upgraded.level)}</small><b>${cardStats(upgraded).cost} 资源 / 次</b><p>${cardResolution(upgraded,match.role)}</p></section></div></details><p class="fusion-receipt">保留：${CARD_BY_ID[main.id].name} · 消耗：${aux===null?'待选辅牌':CARD_BY_ID[aux.id].name}<br>支付 ${cost} 资源。共享冷却继承，不会刷新。<br>强化牌本局保留；融合不补牌。${cardRiskDelta(upgraded,match.role)!==0?'<br>强化牌出牌时：'+cardRisk(upgraded,match.role):''}</p>`;
   }
   updateFusionButton();
 }
 function updateFusionButton() {
   const problem=match.fusionProblem(match.player,fusionMain,fusionAux);
-  $('fusion-rule').textContent=problem;$('btn-fusion-confirm').disabled=problem!=='';$('btn-fusion-confirm').textContent=problem===''?'确认融合 · 保留主牌':'选择两张同等级牌';
+  $('fusion-rule').textContent=problem;$('btn-fusion-confirm').disabled=problem!=='';$('btn-fusion-confirm').textContent=problem===''?`确认融合 · ${FUSION_COSTS[match.player.hand.find(c=>c.uid===fusionMain).level]} 资源`:'确认融合';
 }
 function flashAction(text) {
   clearTimeout(actionTimer);$('action-flash').classList.remove('show');$('action-flash').innerHTML=`<span class="action-ink">${text}</span>`;
@@ -349,10 +351,10 @@ function summarizeAction(action) {
   let title='',detail='';
   if(action.pending>0){
     title=`${name} · ${action.pending} 份在途`;
-    detail=`花费 ${action.cost}，派送 ${action.sent} 份；已抵达 ${action.arrived} 份，实际改变 ${action.changed} 人次。`;
+    detail=`花费 ${action.cost} · 派送 ${action.sent} 份 · 抵达 ${action.arrived} 份 · 改变 ${action.changed} 人次。`;
   }else if(action.sent>0){
     title=`${name} · 改变 ${action.changed} 人次`;
-    detail=`花费 ${action.cost}，抵达 ${action.arrived} 份；${action.changed} 人次改变判断，${action.blocked} 份被阻止，${action.failed} 份未说服。`;
+    detail=`花费 ${action.cost} · 抵达 ${action.arrived} 份${action.blocked>0?' · 阻止 '+action.blocked+' 份':''}${action.failed>0?' · 未说服 '+action.failed+' 份':''}。`;
   }else if(action.card==='script'&&match.reversalAction===action){
     title='反转剧本 · 酝酿中';
     detail=`花费 ${action.cost}，还需 ${Math.max(0,match.reversalAt-match.day).toFixed(1)} 天准备，尚未派送。`;
@@ -360,7 +362,7 @@ function summarizeAction(action) {
     title=`${name} · ${action.card==='dig'?action.immediate+' 个源受限':action.card==='vaxx'?action.immediate+' 人获保护':action.card==='pr'?action.immediate+' 位领袖受影响':'已生效'}`;
     detail=`花费 ${action.cost}。${action.summary}`;
   }
-  return {title,detail:detail+(groups.length>0?' 实际影响：'+groups.join('、')+'。':'')};
+  return {title,detail:detail+(groups.length>0?' 落点：'+groups.join('、')+'。':'')};
 }
 function showImpact(action) {
   focusedAction=action.id;guideMode='impact';impactSide=action.side;
@@ -389,7 +391,7 @@ function refreshLearning() {
   if(guideMode==='impact'){
     const action=match.actions.find(a=>a.id===focusedAction),summary=summarizeAction(action);
     impactNodes=new Set(action.targets);impactSide=action.side;
-    text=`${action.side===match.role?'你的行动':'人机行动'} · ${summary.title}。 ${summary.detail}`;
+    text=`${action.side===match.role?'你':'人机'} · ${summary.title}。${summary.detail}`;
   }else if(guideMode==='scene'){
     impactNodes=new Set(match.scenarioResolved?match.scenarioNodes:match.scenario===0?[match.scenarioSource]:[]);
     impactSide=match.scenario===0?match.nodes[match.scenarioSource].state===1?'rumor':'clarify':match.scenario===1?'clarify':'both';
@@ -442,18 +444,18 @@ function refresh() {
 function showEnding() {
   endShown=true;running=false;const r=match.result,e=ENDINGS[r.key];
   for(const d of dialogs)if(d.open)d.close();$('event-toast').classList.add('hidden');
-  $('end-verdict').textContent=r.won?'你达成了阵营目标':'人机达成了阵营目标';$('end-verdict').className='verdict '+(r.won?'':'lost');
+  $('end-verdict').textContent=r.won?'本局胜利 · 目标达成':'本局失利 · 人机达成目标';$('end-verdict').className='verdict '+(r.won?'':'lost');
   $('end-role-note').textContent=`你的身份：${ROLES[match.role].name} · 传播档案 #${match.seed}`;
   $('end-title').textContent=e.title;$('end-desc').textContent=e.desc;$('end-grade').textContent=r.grade;$('end-score').textContent=`档案评分 ${r.score}`;
   const assessment=!r.won&&r.score>=70?`档案 ${r.grade} 记录了「${e.title}」这一传播形态，形态基准为 ${r.scoreParts[0].value} 分。`:`${r.scoreReason}。`;
-  $('end-assessment').textContent=`${r.won?'你已达成阵营目标':'本局未达成阵营目标'}。${assessment} 档案分合计传播形态、演化用时、行动投入与目标加分，分项如下。`;
-  $('end-intervention').innerHTML=`<b>你的定向行动记录</b><span>${r.intervention.effective} 次定向干预生效</span><span>直接影响 ${r.intervention.changed} 人次</span><span>共派送 ${r.intervention.sent} 份消息</span><small>定向影响包含改变判断、保护、限制与带动。</small>`;
+  $('end-assessment').textContent=`${r.won?'目标达成':'目标未达成'} · ${assessment} 档案分项如下。`;
+  $('end-intervention').innerHTML=`<b>你的定向行动记录</b><span>${r.intervention.effective} 次定向干预生效</span><span>直接影响 ${r.intervention.changed} 人次</span><span>共派送 ${r.intervention.sent} 份消息</span>`;
   drawResult($('end-art'),match.role,r.won);
   $('end-stats').innerHTML=`<div>结算相信率<b>${Math.round(r.belief*100)}%</b></div><div>相信率峰值<b>${Math.round(match.peak*100)}%</b></div><div>你的出牌<b>${match.player.played} 次</b></div><div>融合强化<b>${match.player.fused} 次</b></div>`;
   const chartW=550,chartH=105,path=key=>match.samples.map((p,i)=>`${i===0?'M':'L'}${(12+p.day/13.5*(chartW-24)).toFixed(1)},${(chartH-12-p[key]*(chartH-22)).toFixed(1)}`).join(' ');
   $('end-chart').innerHTML=`<svg viewBox="0 0 ${chartW} ${chartH+16}" role="img" aria-label="传播曲线：蓝色听说，红色相信。峰值 ${Math.round(match.peak*100)}%，结算相信 ${Math.round(r.belief*100)}%。"><path d="M12 10V${chartH-12}H${chartW-12}" fill="none" stroke="#d3cdbd"/><path d="${path('aware')}" fill="none" stroke="#568db9" stroke-width="2"/><path d="${path('belief')}" fill="none" stroke="#d64a56" stroke-width="2.5"/><text x="12" y="${chartH+10}" fill="#999584" font-size="9">开局</text><text x="${chartW-42}" y="${chartH+10}" fill="#999584" font-size="9">收束</text></svg>`;
   $('end-timeline').innerHTML=r.moments.map(moment=>`<div class="timeline-item"><time>第 ${moment.day.toFixed(1)} 天</time>${moment.text}</div>`).join('');
-  $('score-explanation').textContent=`档案按本局传播形态计分；行动投入与演化用时按对应形态计为成本，达成目标 +15 分。90/70/50 分对应 S/A/B，最终分数限制在 10–100。阵营胜负按结算相信率 ${Math.round(Simulation.WIN_THRESHOLD*100)}% 判断。`;
+  $('score-explanation').textContent=`目标达成 +15 分；用时与投入按传播形态计入成本。90/70/50 分对应 S/A/B（总分 10–100）。胜负按结算相信率 ${Math.round(Simulation.WIN_THRESHOLD*100)}% 分界。`;
   $('score-parts').innerHTML=r.scoreParts.map(part=>`<span>${part.label}<b>${part.value>0?'+':''}${part.value.toFixed(1)}</b></span>`).join('');
   $('end-comparison').hidden=comparisonRun===null;
   if(comparisonRun!==null){
@@ -466,7 +468,8 @@ function showEnding() {
   if(match.player.fused>0)achievements.push({id:'fusion',name:'第一次融合'});if(r.won)achievements.push({id:'win-'+match.role,name:'达成'+ROLES[match.role].name+'目标'});
   const newly=achievements.filter(a=>!unlocked.has(a.id));for(const a of newly)unlocked.add(a.id);localStorage.setItem('rumorPlagueAch',JSON.stringify([...unlocked]));
   $('end-ach').textContent=newly.length>0?'本局新探索：'+newly.map(a=>a.name).join('、'):`已留下 ${unlocked.size} 项探索记录`;
-  $('end-dialog').showModal();audio.stopMusic();audio.play(r.won?'win':'lose');
+  $('end-dialog').showModal();$('end-title').focus({preventScroll:true});$('end-dialog').scrollTop=0;
+  audio.stopMusic();audio.play(r.won?'win':'lose');
 }
 function pickNode(mx,my) {
   const x=(mx-view.x)/view.s,y=(my-view.y)/view.s;
@@ -496,7 +499,13 @@ canvas.addEventListener('pointerup',e=>{if(dragTravel<6){const p=pointerPoint(e)
 canvas.addEventListener('pointercancel',e=>pointers.delete(e.pointerId));
 canvas.addEventListener('wheel',e=>{e.preventDefault();zoom(e.deltaY<0?1.12:1/1.12);},{passive:false});
 canvas.tabIndex=0;
-canvas.addEventListener('keydown',e=>{if(['ArrowRight','ArrowLeft'].includes(e.key)){e.preventDefault();const active=match.nodes.filter(n=>n.active);const i=active.findIndex(n=>n.id===selectedNode);selectedNode=active[(i+(e.key==='ArrowRight'?1:active.length-1)+active.length)%active.length].id;updateNodeDetail();$('node-detail').classList.remove('hidden');}});
+canvas.addEventListener('keydown',e=>{
+  if(['ArrowRight','ArrowLeft'].includes(e.key)){
+    e.preventDefault();const active=match.nodes.filter(n=>n.active),i=active.findIndex(n=>n.id===selectedNode);
+    const next=i===-1?(e.key==='ArrowRight'?0:active.length-1):(i+(e.key==='ArrowRight'?1:-1)+active.length)%active.length;
+    selectedNode=active[next].id;updateNodeDetail();$('node-detail').classList.remove('hidden');$('announcement').textContent=$('node-text').textContent;
+  }
+});
 $('btn-start').onclick=()=>{$('scene-step').classList.add('hidden');$('role-step').classList.remove('hidden');$('start-dialog').classList.add('choosing-role');renderRoles();};
 $('btn-back').onclick=()=>{$('scene-step').classList.remove('hidden');$('role-step').classList.add('hidden');$('start-dialog').classList.remove('choosing-role');};
 $('btn-deploy').onclick=async()=>{await audio.activate();startGame({seed:crypto.getRandomValues(new Uint32Array(1))[0],scenario:selectedScenario,difficulty:selectedDifficulty,role:selectedRole});};
@@ -507,7 +516,7 @@ async function setPaused(paused){
 function togglePause(){readingPaused=false;return setPaused(!match.paused);}
 $('btn-pause').onclick=togglePause;$('btn-card-pause').onclick=togglePause;$('btn-fusion-pause').onclick=togglePause;$('btn-event-pause').onclick=togglePause;
 $('btn-speed').onclick=()=>{speed=speed===1?2:speed===2?4:1;$('btn-speed').textContent=speed+'×';$('btn-speed').setAttribute('aria-label',`切换速度，当前 ${speed} 倍`);};
-$('btn-restart').onclick=()=>showStart(1);$('btn-again').onclick=()=>showStart(2);
+$('btn-restart').onclick=()=>showStart(1);$('btn-again').onclick=()=>showStart(1);
 $('btn-replay').onclick=async()=>{await audio.activate();startGame(lastOptions);};
 $('btn-swap-network').onclick=async()=>{await audio.activate();startGame({...lastOptions,role:lastOptions.role==='rumor'?'clarify':'rumor'});};
 $('btn-formulas').onclick=()=>{renderFormulas();$('formula-dialog').showModal();};
@@ -531,6 +540,7 @@ $('btn-scene-focus').onclick=()=>{
   refresh();
 };
 $('btn-fuse').onclick=openFusion;$('btn-fusion-close').onclick=()=>$('fusion-dialog').close();
+$('btn-fusion-back').onclick=()=>$('fusion-dialog').close();
 $('btn-fusion-confirm').onclick=()=>{
   const uid=fusionMain,problem=match.fuse(match.player,fusionMain,fusionAux);
   if(problem){$('fusion-rule').textContent=problem;return;}
@@ -549,7 +559,7 @@ function toggleLog() {
 }
 $('btn-log').onclick=toggleLog;$('btn-log-close').onclick=toggleLog;
 $('btn-zoom-in').onclick=()=>zoom(1.15);$('btn-zoom-out').onclick=()=>zoom(1/1.15);$('btn-view-reset').onclick=()=>{view.s=1;view.x=0;view.y=0;};
-$('btn-node-close').onclick=()=>{selectedNode=-1;$('node-detail').classList.add('hidden');};
+$('btn-node-close').onclick=()=>{selectedNode=-1;$('node-detail').classList.add('hidden');canvas.focus({preventScroll:true});};
 $('volume').value=audio.volume;$('btn-mute').textContent=audio.enabled?'声音已开启':'声音已关闭';
 $('volume').oninput=e=>audio.setVolume(Number(e.target.value));
   $('btn-mute').onclick=async()=>{await audio.activate();audio.toggle();$('btn-mute').textContent=audio.enabled?'声音已开启':'声音已关闭';if(running&&!match.paused)audio.play('select');else audio.stop();};
