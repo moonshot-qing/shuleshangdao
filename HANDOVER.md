@@ -54,6 +54,8 @@
 
 36×48人物、24×24卡牌源图、校园建筑、身份和结算共用 pixel-art.js。真实发言/变化后短暂抬手机，减少动态用静帧。来源/规格见 assets/。Web Audio 在用户操作后激活，支持静音、音量、暂停/后台挂起。原对白与事件说明见 CAMPUS_CONTENT.md。
 
+交付前合并远端77f2bf6的背景音乐与两份介绍文档，保留原曲和混音。阅读暂停统一走setPaused，同时停乐/恢复；audio.reset清除上一局音乐调度、音符和强度，stopMusicLoop不吞错。玩法介绍的两张截图由capture_endings.py自然推进自对弈生成，种子9831/9832，未强制结算，来源见screenshots/README.json。
+
 ## 文件与检查
 
 simulation.js 管规则/AI，game.js 管界面/视觉，pixel-art.js 管美术，audio.js 管声音。

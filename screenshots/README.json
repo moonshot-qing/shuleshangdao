@@ -1,0 +1,133 @@
+{
+  "simulationSha256": "0b2fede57c6af24bf68901314712cc87d13e0164aa8d6c3f0eff403ab59a5d0b",
+  "method": "Fixed-seed complete-AI self-play at equal cadence; simulation reaches its natural end. Screenshots are simulated matches, not human play sessions.",
+  "screenshots": [
+    {
+      "seed": 9831,
+      "role": "rumor",
+      "day": 13.5,
+      "result": {
+        "key": "rebound",
+        "winner": "rumor",
+        "won": true,
+        "score": 100,
+        "grade": "S",
+        "scoreParts": [
+          {
+            "label": "传播形态基准",
+            "value": 110
+          },
+          {
+            "label": "二次传播峰值",
+            "value": 25.423728813559322
+          },
+          {
+            "label": "演化用时",
+            "value": -27
+          },
+          {
+            "label": "达成阵营目标",
+            "value": 15
+          },
+          {
+            "label": "取整与10–100分范围",
+            "value": -23.423728813559308
+          }
+        ],
+        "scoreReason": "主要成本来自演化用时（27.0 分）",
+        "intervention": {
+          "effective": 4,
+          "changed": 20,
+          "sent": 24
+        },
+        "belief": 0.5169491525423728,
+        "aware": 0.9576271186440678,
+        "moments": [
+          {
+            "kind": "intervention",
+            "day": 8.55,
+            "weight": 8,
+            "text": "人机的「官方辟谣」抵达时使 8 人修正判断"
+          },
+          {
+            "kind": "rebound",
+            "day": 11.93,
+            "weight": 52.4482109227872,
+            "increase": 0.524482109227872,
+            "text": "反转后相信率从第 3.5 天的 11% 回升至 64%"
+          },
+          {
+            "kind": "ban",
+            "day": 12.05,
+            "weight": 9.5,
+            "text": "营销号 #14 被封禁，停止沿 19 条连接转述"
+          }
+        ]
+      },
+      "file": "screenshots/01-传谣者胜利.png"
+    },
+    {
+      "seed": 9832,
+      "role": "clarify",
+      "day": 13.5,
+      "result": {
+        "key": "known",
+        "winner": "clarify",
+        "won": true,
+        "score": 47,
+        "grade": "C",
+        "scoreParts": [
+          {
+            "label": "传播形态基准",
+            "value": 100
+          },
+          {
+            "label": "行动投入",
+            "value": -28
+          },
+          {
+            "label": "演化用时",
+            "value": -40.5
+          },
+          {
+            "label": "达成阵营目标",
+            "value": 15
+          },
+          {
+            "label": "取整与10–100分范围",
+            "value": 0.5
+          }
+        ],
+        "scoreReason": "主要成本来自演化用时（40.5 分）",
+        "intervention": {
+          "effective": 1,
+          "changed": 9,
+          "sent": 0
+        },
+        "belief": 0.2966101694915254,
+        "aware": 0.9576271186440678,
+        "moments": [
+          {
+            "kind": "cross",
+            "day": 0.37,
+            "weight": 2,
+            "text": "首次成功跨圈转述：文艺社团 → 生活群聊"
+          },
+          {
+            "kind": "intervention",
+            "day": 8.36,
+            "weight": 9,
+            "text": "你的「群体接种」为 9 人建立证据保护"
+          },
+          {
+            "kind": "ban",
+            "day": 13.34,
+            "weight": 9.5,
+            "text": "群主 #106 被封禁，停止沿 19 条连接转述"
+          }
+        ]
+      },
+      "file": "screenshots/02-辟谣者胜利.png"
+    }
+  ]
+}

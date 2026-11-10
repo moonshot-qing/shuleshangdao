@@ -38,3 +38,5 @@ python scripts/verify_experience.py --demo-only --demo-seed 173
 ```
 
 脚本用真实计时4×速度完成对局，输出完整录像、独立合成音轨、结算截图及含模型哈希/种子的JSON。时长由传播决定，不保证刚好90秒。完整实跑在 test-results/duel；构造的界面截图在 test-results/judging-review，二者分开记录。
+
+相同种子固定网络与随机源，实际操作时点仍会改变对局。音乐与音效的听感还应在真实设备上试听；浏览器音轨解码只能确认存在声音及峰值，不能代替主观混音评价。

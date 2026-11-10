@@ -35,6 +35,7 @@ def main():
             page.locator('#role-rumor').click()
             page.screenshot(path=str(out/f'roles-{width}.png'),animations='disabled')
             page.locator('#btn-deploy').click()
+            page.wait_for_function('audio.musicTimer!==null && audio.musicWanted')
             page.evaluate("""scenario => {
                 startGame({seed:173,scenario,difficulty:1,role:'rumor'});
                 match.player.hand=[match.newCard('army',1),match.newCard('farm',1),match.newCard('script',1),match.newCard('weaktie',1)];
@@ -44,6 +45,7 @@ def main():
             assert '你的目标' in page.locator('#guide-copy').text_content()
             page.locator('.card-face').first.click()
             assert page.evaluate('match.paused && readingPaused')
+            assert page.evaluate('audio.musicTimer===null && !audio.musicWanted && audio.musicVoices.size===0')
             before=page.evaluate('match.tickCount')
             page.wait_for_timeout(350)
             assert before==page.evaluate('match.tickCount')
@@ -55,6 +57,7 @@ def main():
             assert page.locator('.resolution-note').is_visible()
             page.screenshot(path=str(out/f'full-card-{width}.png'),animations='disabled')
             page.keyboard.press('Escape');page.wait_for_function('!match.paused && !readingPaused')
+            page.wait_for_function('audio.musicTimer!==null && audio.musicWanted')
             page.locator('.card-face').first.click()
             page.locator('#btn-detail-play').click()
             page.wait_for_function('match.player.played===1 && !match.paused')
@@ -72,6 +75,7 @@ def main():
             assert page.evaluate('match.paused && !readingPaused')
             page.locator('#btn-card-close').click()
             assert page.evaluate('match.paused')
+            assert page.evaluate('audio.musicTimer===null')
             page.locator('#btn-pause').click()
             page.evaluate("""() => {
                 match.opponent.resource=500;

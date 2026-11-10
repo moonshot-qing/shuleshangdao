@@ -161,7 +161,7 @@ function renderDifficulties() {
 }
 function showStart(step) {
   readingPaused=false;guideMode='closed';impactNodes.clear();
-  running=false;audio.stop();for(const d of dialogs)if(d.open)d.close();
+  running=false;audio.stop();audio.stopMusic();for(const d of dialogs)if(d.open)d.close();
   feedbacks=[];clearTimeout(actionTimer);$('action-flash').classList.remove('show');
   $('event-toast').classList.add('hidden');$('node-detail').classList.add('hidden');selectedNode=-1;
   if(step===1)selectedRole='';
@@ -179,7 +179,7 @@ function startGame(options) {
   lastRevision=-1;messageCursor=0;selectedNode=-1;selectedCard=0;fusionMain=0;fusionAux=0;lastEvent=null;
   view.s=1;view.x=0;view.y=0;pointers.clear();pinch=null;
   feedbacks=[];presentationMs=0;presentationAt=performance.now();lastHand='';dragTravel=0;lastVisualTick=-1;
-  clearTimeout(actionTimer);$('action-flash').classList.remove('show');audio.reset();
+  clearTimeout(actionTimer);$('action-flash').classList.remove('show');audio.reset();audio.startMusic();
   $('opponent-mark').parentElement.classList.remove('opponent-acted');
   $('log-list').innerHTML='';$('event-toast').classList.add('hidden');$('node-detail').classList.add('hidden');
   for(const d of dialogs)if(d.open)d.close();
@@ -407,6 +407,7 @@ function refresh() {
   if(lastRevision!==match.revision)renderCards();
   const c=match.counts(),belief=c.i/c.total,aware=c.aware/c.total;
   const m=match.moderation(),chance=(m.chance*100).toFixed(2);
+  audio.setMusicIntensity(.22+match.heat*.45+aware*.45+m.attention/250);
   $('moderation-brief').textContent=`封号概率 ${chance}% / 步 · 风险 ${Math.round(m.risk)}`;
   $('moderation-brief').classList.toggle('risk-active',m.chance>0);
   $('v-risk').textContent=`${Math.round(m.risk)} / 100`;$('bar-risk').style.width=m.risk+'%';
@@ -465,7 +466,7 @@ function showEnding() {
   if(match.player.fused>0)achievements.push({id:'fusion',name:'第一次融合'});if(r.won)achievements.push({id:'win-'+match.role,name:'达成'+ROLES[match.role].name+'目标'});
   const newly=achievements.filter(a=>!unlocked.has(a.id));for(const a of newly)unlocked.add(a.id);localStorage.setItem('rumorPlagueAch',JSON.stringify([...unlocked]));
   $('end-ach').textContent=newly.length>0?'本局新探索：'+newly.map(a=>a.name).join('、'):`已留下 ${unlocked.size} 项探索记录`;
-  $('end-dialog').showModal();audio.play(r.won?'win':'lose');
+  $('end-dialog').showModal();audio.stopMusic();audio.play(r.won?'win':'lose');
 }
 function pickNode(mx,my) {
   const x=(mx-view.x)/view.s,y=(my-view.y)/view.s;
@@ -501,7 +502,7 @@ $('btn-back').onclick=()=>{$('scene-step').classList.remove('hidden');$('role-st
 $('btn-deploy').onclick=async()=>{await audio.activate();startGame({seed:crypto.getRandomValues(new Uint32Array(1))[0],scenario:selectedScenario,difficulty:selectedDifficulty,role:selectedRole});};
 async function setPaused(paused){
   match.paused=paused;$('btn-pause').textContent=match.paused?'▷':'Ⅱ';$('btn-pause').setAttribute('aria-label',match.paused?'继续传播':'暂停传播');$('btn-pause').setAttribute('aria-pressed',String(match.paused));
-  if(match.paused)audio.stop();else await audio.activate();clockAt=performance.now();refresh();
+  if(match.paused){audio.stopMusic();audio.stop();}else{await audio.activate();audio.startMusic();}clockAt=performance.now();refresh();
 }
 function togglePause(){readingPaused=false;return setPaused(!match.paused);}
 $('btn-pause').onclick=togglePause;$('btn-card-pause').onclick=togglePause;$('btn-fusion-pause').onclick=togglePause;$('btn-event-pause').onclick=togglePause;
@@ -554,7 +555,7 @@ $('volume').oninput=e=>audio.setVolume(Number(e.target.value));
   $('btn-mute').onclick=async()=>{await audio.activate();audio.toggle();$('btn-mute').textContent=audio.enabled?'声音已开启':'声音已关闭';if(running&&!match.paused)audio.play('select');else audio.stop();};
 window.addEventListener('resize',resize);
 reducedMotion.addEventListener('change',()=>{for(let k=0;k<60;k++)physics();});
-document.addEventListener('visibilitychange',async()=>{clockAt=performance.now();presentationAt=clockAt;if(document.hidden)audio.stop();else if(running&&!match.paused)await audio.activate();});
+document.addEventListener('visibilitychange',async()=>{clockAt=performance.now();presentationAt=clockAt;if(document.hidden)audio.stop();else if(running&&!match.paused){await audio.activate();audio.startMusic();}});
 setInterval(()=>{
   const now=performance.now();if(running&&!match.paused&&!document.hidden){elapsedMs+=now-clockAt;for(let i=0;i<speed&&!match.ended;i++)match.step();refresh();}clockAt=now;
 },150);
