@@ -78,8 +78,8 @@ assert.equal(run(9191),run(9191));assert.notEqual(run(9191),run(9192));checks+=1
   near(g.naturalClarify(bot,target,f),MODEL_RATES.clarify*f.voice*.5);
   const controlled=g.formulas().voice;g.apply(g.actors.clarify,{id:'chot',level:1});f=g.formulas();near(f.voice,Math.min(2,controlled+.8));
   near(g.naturalClarify(bot,target,f),MODEL_RATES.clarify*f.voice*.5*2);
-  const official=f.official;g.apply(g.actors.clarify,{id:'cold',level:1});f=g.formulas();near(f.official,official+.25);near(f.forget,.016);
-  g.campusEvent('meme');near(g.formulas().forget,.048);
+  const official=f.official;g.apply(g.actors.clarify,{id:'cold',level:1});f=g.formulas();near(f.official,official+.25);near(f.forget,.010);
+  g.campusEvent('meme');near(g.formulas().forget,.030);
   g.particles=[];const probability=g.formulas().official,ambiguity=g.ambiguity;
   g.apply(g.actors.clarify,{id:'debunk',level:1});assert(g.particles.length>0);assert(g.particles.every(p=>p.chance===probability));assert(g.ambiguity<ambiguity);
   const script=g.newCard('script',1);g.actors.rumor.hand.push(script);

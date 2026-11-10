@@ -1,5 +1,7 @@
 # GitHub Skills 筛选与实际应用记录
 
+2026-11-10 评审问题改进：按需使用 card-game（真实跨社群目标、统一可用性与结算、资源曲线和固定种子对照）、game-ui-ux（简要/完整规则分层、阅读自动暂停、矮屏操作区、同网络对照）、game-feel（派送/抵达/实际状态变化回执及定位）与 ai-behavior-trees-utility-ai（局势收益、终局目标与低传播时的行动优先级）。沿用直接评分和条件，无行为树/通用框架。素材与Web Audio继续复用已有实现。清理开发机安装路径，保留第三方技能仓库、版本、哈希与许可。实际检查和未完成事项见 IMPLEMENTATION_REPORT.md 当前节。
+
 2026-11-09 美术精修（最新）：本轮按需阅读并应用 create-game-assets（包括 art-direction 参考）、game-ui-ux、game-feel，未重复加载不相关的音频/卡牌规则/AI Skill。实际重画八类统一36×48人物和十六张24×24卡牌插画，接入三种校园建筑与缩略图、身份肖像及结算小景；类别衣色与群聊一致，传播状态用独立标记。game-ui-ux用于48px卡面和手机/横屏适配；game-feel用于发言/状态变化后的短暂抬手机，保留减少动态和跨局重置。素材规格、来源与许可在 assets/art-direction-brief.md / art-manifest.json。语法、五视口基础、三视口专项浏览器回归通过并查看实际截图；源码模拟哈希未变，未新做平衡测试或真机审美验收。下文7×7图标/72×64肖像和“未截图”记录属于本轮之前的历史状态。
 
 2026-11-09 最新验证：用户已要求恢复验证，继续使用 webapp-testing 的原生 Python Playwright 流程。完成五视口基础回归和三视口新增流程实点，发现并修复浮层遮挡/越界；查看桌面、手机、融合、风险详情及事件截图，录制本次完整计时对局。使用 card-game 的费用/冷却/效果与融合代价分析完成1,680局回归、7,128个受控单卡分支及240局同能力参数隔离；结论为当前偏向辟谣，非“已平衡”。数据版本、限制及修复详见 CARD_BALANCE_REPORT.md。
@@ -46,11 +48,11 @@
 使用本机系统 `skill-installer` 的官方辅助脚本，按固定 commit 安装：
 
 ```powershell
-python C:/Users/58362/.codex/skills/.system/skill-installer/scripts/install-skill-from-github.py --repo anthropics/skills --ref 2c5958ecac7cee2b583967a2c4981d0f4a75c579 --path skills/frontend-design skills/webapp-testing
-python C:/Users/58362/.codex/skills/.system/skill-installer/scripts/install-skill-from-github.py --repo vercel-labs/agent-skills --ref 1a2c79d4e6c4a2283dc2c614b6538cbe1ed5ca62 --path skills/web-design-guidelines
+python <skill-installer>/scripts/install-skill-from-github.py --repo anthropics/skills --ref 2c5958ecac7cee2b583967a2c4981d0f4a75c579 --path skills/frontend-design skills/webapp-testing
+python <skill-installer>/scripts/install-skill-from-github.py --repo vercel-labs/agent-skills --ref 1a2c79d4e6c4a2283dc2c614b6538cbe1ed5ca62 --path skills/web-design-guidelines
 ```
 
-已安装到 `C:/Users/58362/.codex/skills/` 下的同名目录，下轮对话可被自动发现；本轮已经主动阅读并应用其指引。所有三个本地 `SKILL.md` 均与固定 commit 的原始内容逐字节比较一致，SHA256 与来源信息保存在 [skills-lock.json](skills-lock.json)。该 JSON 是来源记录，不是游戏依赖管理器。
+已安装到本机开发技能目录；已阅读并应用其指引。所有三个本地 `SKILL.md` 均与固定 commit 的原始内容逐字节比较一致，SHA256 与来源信息保存在 [skills-lock.json](skills-lock.json)。该 JSON 是来源记录，不是游戏依赖管理器。
 
 Anthropic 两项的目录内 `LICENSE.txt` 均为 Apache-2.0。Vercel 所选目录未发现明确的许可声明，本轮仅安装为本机开发指引，没有把 Skill 原文或脚本复制进项目进行分发。项目自身许可证仍为 MIT。
 

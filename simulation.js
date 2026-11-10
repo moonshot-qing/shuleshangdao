@@ -1,9 +1,12 @@
 "use strict";
 
 const SCENARIOS = [
-  { title: "校园音乐节要取消了？", label: "音乐节风波", note: "一张模糊的通知，传进了不同的同学圈。", place: "校园舞台", heat: .23, importance: 1.02, seeds: 4 },
-  { title: "自习座位只留给部分学院？", label: "座位之争", note: "预约截图被截去半句，公平问题引发讨论。", place: "图书馆", heat: .3, importance: 1.04, seeds: 4 },
-  { title: "校园超市要停业一个月？", label: "超市传闻", note: "一条临时调整消息，让群聊突然热闹起来。", place: "校园超市", heat: .36, importance: 1.07, seeds: 5 }
+  { title: "校园音乐节要取消了？", label: "音乐节风波", note: "一张模糊的通知，传进了不同的同学圈。", place: "校园舞台", heat: .23, importance: 1.02, seeds: 4,
+    twist:"社团接力",rule:"第 3 天，文艺社团的意见领袖向相邻圈层接力。届时相信就转述，已核实就传证据；被限制则停发。",plan:"提前争取或限制社团领袖，改变第 3 天的接力方向。" },
+  { title: "自习座位只留给部分学院？", label: "座位之争", note: "预约截图被截去半句，公平问题引发讨论。", place: "图书馆", heat: .3, importance: 1.04, seeds: 4,
+    twist:"原图归档",rule:"第 3 天，自习小组最多 4 名已核实同学归档原图，证据保护延长到第 4.2 天。",plan:"核实方提前送达证据；传谣方留意保护结束，或转向其他圈层。" },
+  { title: "校园超市要停业一个月？", label: "超市传闻", note: "一条临时调整消息，让群聊突然热闹起来。", place: "校园超市", heat: .36, importance: 1.07, seeds: 5,
+    twist:"晚高峰入群",rule:"第 3 天，生活群聊最多 6 位原本稍后上线的同学提前入群，双方都可以争取。",plan:"为新同学留一张行动牌，也可提前保护他们会接触的传播源。" }
 ];
 const TYPES = {
   bigv: { name: "大V", color: "#e5ad39", inf: 1.65, sus: .8 },
@@ -119,29 +122,29 @@ const EMERGENCY_RULES={
 };
 const EMERGENCY_WINDOW=1.2;
 const ROLES = {
-  rumor: { name: "传谣者", resource: "流量", verb: "转述", goal: "让结算相信率达到 35%", color: "#d64a56" },
-  clarify: { name: "辟谣者", resource: "核实资源", verb: "核实", goal: "让结算相信率低于 35%", color: "#178454" }
+  rumor: { name: "传谣者", resource: "流量", verb: "转述", goal: "让结算相信率达到 35%", color: "#d64a56",baseIncome:.25 },
+  clarify: { name: "辟谣者", resource: "核实资源", verb: "核实", goal: "让结算相信率低于 35%", color: "#178454",baseIncome:.20 }
 };
 const DIFFICULTIES = [
   { name: "休闲", interval: 1.25, note: "对手思考更久，适合熟悉卡牌" },
   { name: "标准", interval: .9, note: "会组合、留资源，也会反制" },
   { name: "大师", interval: .65, note: "行动更紧凑，更快抓住机会" }
 ];
-const MODEL_RATES={spread:.014,clarify:.014};
+const MODEL_RATES={spread:.015,clarify:.014};
 const FUSION_COSTS=[0,30,45];
-const MODERATION={threshold:40,rate:.0010,minConnections:12,attentionThreshold:55,riskGain:.4,riskDecay:.05,attentionDrop:6};
+const MODERATION={threshold:40,rate:.0008,minConnections:12,attentionThreshold:55,riskGain:.4,riskDecay:.05,attentionDrop:6};
 const CARD_PARAMS={
   hot:{multiplier:1.65,heatDelta:.25,ambiguityDelta:.08,banRisk:12},
   army:{chance:.8,bonusTargets:2,banRisk:18},control:{voiceMultiplier:.3},
   weaktie:{chance:.9},pr:{multiplier:1.7},agenda:{increment:.12,cap:.36},
   lottery:{chance:.9,heatDelta:.1},script:{chance:.9,ambiguityDelta:.15},
   debunk:{trustCoefficient:.55,baseChance:.2,coldChance:.25,bonusTargets:3,trustDelta:.02,ambiguityDelta:-.3},
-  cold:{multiplier:.6,forget:.016,heatDelta:-.2,banRisk:-25},vaxx:{},radio:{chance:1},dig:{},
+  cold:{multiplier:.6,forget:.010,heatDelta:-.2,banRisk:-25},vaxx:{},radio:{chance:1},dig:{},
   chot:{voiceDelta:.8,voiceCap:2,multiplier:2,trustDelta:.05},farm:{banRisk:22},scout:{chance:1}
 };
 const CARD_THEORY={
   hot:'议程显著性：提高热度项 H，放大每次接触的传播概率。',army:'两级传播：先影响高连接账号，再由意见节点带动人群。',
-  control:`沉默的螺旋：发声意愿 V ×${CARD_PARAMS.control.voiceMultiplier}，辅导员与直接核实卡不受影响。`,weaktie:'弱连接理论：让信息通过边缘关系进入其他圈层。',
+  control:`沉默的螺旋：发声意愿 V ×${CARD_PARAMS.control.voiceMultiplier}，辅导员与直接核实卡不受影响。`,weaktie:'跨圈桥梁：从仍在转述的人出发，沿真实的跨社群连接派送；优先共同邻居少、相信者比例低的圈层。',
   pr:'两级传播：意见领袖的传播力 q 获得阶段加成。',agenda:'议程设置：重要性 i 增加，同时改变 R=i×a 与实际传播倍率。',
   lottery:'使用与满足：额外动机带来转述，而接触不等于相信。',script:'信息反转：新说法抬高模糊性 a，改变谣言强度与二次传播。',
   debunk:`公信力模型：P=${CARD_PARAMS.debunk.trustCoefficient}T+${CARD_PARAMS.debunk.baseChance}，冷处理中额外 +${CARD_PARAMS.debunk.coldChance}。`,cold:`遗忘机制：每步自然退出信谣的概率由 0.0028 提高到 ${CARD_PARAMS.cold.forget}。`,
@@ -151,9 +154,9 @@ const CARD_THEORY={
 };
 const CARD_DEFS = [
   { id:"hot", name:"加热搜", side:"rumor", cost:85, cd:2, rarity:1, category:"持续", amount:0, duration:2.3, effect:"转述效率 ×1.65，讨论热度 +25%", target:"全网络", combo:"先加热搜，再用水军或弱连接扩大传播。", counter:"冷处理降低传播，辟谣热搜增加核实。" },
-  { id:"army", name:"买水军", side:"rumor", cost:100, cd:2, rarity:1, category:"行动", amount:7, duration:0, effect:"向 {n} 个高连接账号送达转述，80% 被说服", target:"未相信、未受证据保护的在线账号", combo:"热搜生效时多影响 2 人。", counter:"群体接种保护关键人物，反黑调查抑制源头。" },
+  { id:"army", name:"买水军", side:"rumor", cost:100, cd:2, rarity:1, category:"行动", amount:8, duration:0, effect:"向 {n} 个高连接账号送达转述，80% 被说服", target:"未相信、未受证据保护的在线账号", combo:"热搜生效时多影响 2 人。", counter:"群体接种保护关键人物，反黑调查抑制源头。" },
   { id:"control", name:"控评", side:"rumor", cost:75, cd:2, rarity:1, category:"应对", amount:0, duration:1.8, effect:"自然发声意愿 ×0.3；不影响辅导员与直接核实卡", target:"bot、理中客的自然澄清路径", combo:"在对手提高核实效率时使用。", counter:"校园电台的定向核实不受影响。" },
-  { id:"weaktie", name:"弱连接渗透", side:"rumor", cost:85, cd:2.3, rarity:2, category:"行动", amount:5, duration:0, effect:"向 {n} 位低连接同学派送转述，尝试打开新圈层", target:"低连接、尚未相信的在线同学", combo:"先建立热度，再打开新路径。", counter:"预先核实可保护尚未入场的人群。" },
+  { id:"weaktie", name:"弱连接渗透", side:"rumor", cost:85, cd:2.3, rarity:2, category:"行动", amount:6, duration:0, effect:"沿真实跨圈连接，向最多 {n} 人派送转述", target:"与现有传播者相连、处于其他社群且未受保护的在线同学", combo:"保住传播源，优先争取相信者较少的圈层。", counter:"核实或限制桥梁源头，也可保护接收者。" },
   { id:"pr", name:"大V公关", side:"rumor", cost:100, cd:2.5, rarity:2, category:"行动", amount:1, duration:2, effect:"说服 1 位大V或群主，其转述效率 ×1.7", target:"未被抑制、未受保护的大V或群主", combo:"与加热搜叠加；优先连接广的人。", counter:"反黑调查可让此节点暂时停止转述。" },
   { id:"agenda", name:"议程设置", side:"rumor", cost:130, cd:3.5, rarity:3, category:"持续", amount:0, duration:0, effect:"重要性 i +{i}，累计增量上限 +0.36", target:"全网络", combo:"适合前中期积累，不宜在收尾时投入。", counter:"提高持续核实能力，削弱长期收益。" },
   { id:"lottery", name:"转发抽奖", side:"rumor", cost:70, cd:1.6, rarity:1, category:"行动", amount:5, duration:0, effect:"向 {n} 位同学送达转述，热度 +10%", target:"普通在线同学", combo:"低成本建立第一轮讨论。", counter:"冷处理或电台及时跟进。" },
@@ -205,7 +208,7 @@ function cardResolution(card,side) {
     case 'hot':return `立即提高热度 ${s.heatDelta*100} 个百分点（最高 100%）、模糊性 +${s.ambiguityDelta}（最高 1.2）；自然转述 ×${s.multiplier}，持续 ${days} 天。`;
     case 'army':return `向最多 ${s.amount} 个高连接账号派送转述，每人抵达时有 ${s.chance*100}% 概率相信。热搜期间额外派送 ${s.bonusTargets} 人；证据保护仍会阻止说服。`;
     case 'control':return `自然发声意愿 ×${s.voiceMultiplier}，持续 ${days} 天。影响 bot 和理中客的自然核实；辅导员、官方辟谣和校园电台不受此项影响。`;
-    case 'weaktie':return `优先向连接较少的同学派送最多 ${s.amount} 份转述，每份抵达后有 ${s.chance*100}% 概率说服。目标来自全网，不保证每次都进入新圈层。`;
+    case 'weaktie':return `从仍在转述、未受限的传播者出发，沿实际跨社群边派送最多 ${s.amount} 份转述，每份抵达后有 ${s.chance*100}% 概率说服。优先选择相信者比例较低的圈层、共同邻居较少的连接，同一接收者只派送一份；没有跨圈路径时不可用。`;
     case 'pr':return `立即说服 1 位大V或群主，优先尚未相信者及高连接者；其自然转述 ×${s.multiplier}，持续 ${days} 天。保护、抑制或公关加成尚未结束的关键人物不能成为目标。`;
     case 'agenda':return `立即提高重要性 i ${(s.factor*s.increment).toFixed(3)}，本局累计最多 +${s.cap}。强化提高单次增量，不提高累计上限。`;
     case 'lottery':return `优先向普通同学派送最多 ${s.amount} 份转述，抵达后有 ${s.chance*100}% 概率说服；立即提高热度 ${s.heatDelta*100} 个百分点（最高 100%）。`;
@@ -245,7 +248,7 @@ function cardUpgradeSummary(card) {
   changes.push(`出牌费 ${before.cost} → ${after.cost}`,`融合费 ${FUSION_COSTS[card.level]}`, '消耗 1 张辅牌');
   return changes;
 }
-function incomeRate(side,counts) {return .20+.0015*(side==='rumor'?counts.i:counts.r);}
+function incomeRate(side,counts) {return ROLES[side].baseIncome+.0015*(side==='rumor'?counts.i:counts.r);}
 function banRiskAfter(risk,delta) {return Math.max(0,Math.min(100,risk+delta));}
 function banChance(risk,targetCount) {return targetCount===0?0:Math.max(0,risk-MODERATION.threshold)*MODERATION.rate;}
 
@@ -268,6 +271,9 @@ class Simulation {
     this.nextUid=0; this.nextEvent=2.3; this.event=null;this.lastEmergency=-1;this.emergencyHistory=[];this.eventFollowups=[];
     this.result=null; this.revision=0;
     this.buildNetwork();
+    this.scenarioResolved=false;this.scenarioOutcome='';this.scenarioNodes=[];
+    this.scenarioSource=this.nodes.filter(n=>n.group===0&&['bigv','leader'].includes(n.type)).sort((a,b)=>this.adj[b.id].length-this.adj[a.id].length)[0].id;
+    this.scenarioArrivals=this.nodes.filter(n=>!n.active&&n.group===2).sort((a,b)=>b.spawnDay-a.spawnDay).slice(0,6).map(n=>n.id);
     this.actors={rumor:this.makeActor('rumor'),clarify:this.makeActor('clarify')};
     this.player=this.actors[role]; this.opponent=this.actors[role==='rumor'?'clarify':'rumor'];
     this.nextAI=1.15; this.lastAI='正在观察最初的传播';
@@ -416,6 +422,51 @@ class Simulation {
   targets(side) {
     return this.nodes.filter(n=>n.active&&!n.banned&&n.type!=='bot'&&(side==='rumor'?n.state!==1&&n.shieldUntil<=this.day:n.state===1));
   }
+  weakLinks() {
+    const legal=new Set(this.targets('rumor').map(n=>n.id)),heard=[0,0,0,0],population=[0,0,0,0],paths=[];
+    for(const n of this.nodes)if(n.active){population[n.group]++;if(n.state===1)heard[n.group]++;}
+    for(const source of this.nodes)if(source.active&&!source.banned&&source.state===1&&source.silencedUntil<=this.day){
+      for(const id of this.adj[source.id]){
+        const target=this.nodes[id];
+        if(legal.has(id)&&source.group!==target.group){
+          const overlap=this.adj[source.id].filter(j=>this.adj[id].includes(j)).length;
+          paths.push({a:source.id,b:id,overlap,coverage:heard[target.group]/population[target.group]});
+        }
+      }
+    }
+    paths.sort((a,b)=>a.coverage-b.coverage||a.overlap-b.overlap||a.b-b.b||a.a-b.a);
+    const used=new Set();
+    return paths.filter(p=>{if(used.has(p.b))return false;used.add(p.b);return true;});
+  }
+  resolveScenario() {
+    this.scenarioResolved=true;
+    let detail='';
+    if(this.scenario===0){
+      const source=this.nodes[this.scenarioSource],kind=source.state===1?'rumor':'clarify';
+      if(source.banned||source.silencedUntil>this.day||source.state===0){
+        detail=`${TYPES[source.type].name} #${source.id+1} 尚未形成可传播的判断或已受限，本次没有接力。`;
+      }else{
+        const legal=new Set(this.targets(kind).map(n=>n.id));
+        const targets=this.adj[source.id].map(id=>this.nodes[id]).filter(n=>n.group!==source.group&&legal.has(n.id)).slice(0,4);
+        this.scenarioNodes=targets.map(n=>n.id);
+        let sent=0;
+        for(const n of targets)if(this.send(source.id,n.id,kind,.85)!==null)sent++;
+        detail=`${TYPES[source.type].name} #${source.id+1} 向相邻圈层派送 ${sent} 份${kind==='rumor'?'转述':'核实'}，抵达后结算。`;
+      }
+    }else if(this.scenario===1){
+      const targets=this.nodes.filter(n=>n.active&&!n.banned&&n.group===1&&n.state===2&&n.type!=='bot').sort((a,b)=>this.adj[b.id].length-this.adj[a.id].length).slice(0,4);
+      this.scenarioNodes=targets.map(n=>n.id);
+      for(const n of targets){n.shieldUntil=Math.max(n.shieldUntil,4.2);n.changedAt=this.tickCount;n.lastReason='预约原图归档，证据保护延长至第4.2天';}
+      detail=`自习小组 ${targets.length} 名已核实同学归档原图，保护延长至第 4.2 天；没有直接说服新人物。`;
+    }else{
+      const newcomers=this.scenarioArrivals.map(id=>this.nodes[id]).filter(n=>!n.active);
+      this.scenarioNodes=newcomers.map(n=>n.id);
+      for(const n of newcomers){n.active=true;n.spawnDay=this.day;this.activity.joined++;}
+      detail=`生活群聊 ${newcomers.length} 位同学提前入群，在线人口增加；他们还没有相信或核实这条消息。`;
+    }
+    this.scenarioOutcome=detail;
+    this.record(`${SCENARIOS[this.scenario].twist}\n${detail}`,'scene','both');
+  }
   moderation() {
     const targets=this.nodes.filter(n=>n.active&&!n.banned&&n.state===1&&this.adj[n.id].length>=MODERATION.minConnections);
     const chance=banChance(this.banRisk,targets.length);
@@ -457,14 +508,15 @@ class Simulation {
   completeDelivery(action) {
     this.record(`「${CARD_BY_ID[action.card].name}」抵达结果\n${action.arrived} 份消息抵达，${action.changed} 人${action.side==='rumor'?'开始相信':'修正判断'}。\n${action.blocked} 份因保护、封禁或判断已改变而无效；${action.failed} 份未能说服。`,'delivery',action.side).card=action.card;
   }
-  playProblem(a,card) {
+  playProblem(a,card,willResume=false) {
     const d=CARD_BY_ID[card.id],s=cardStats(card);
     if(this.ended)return '本局已经结束';
-    if(this.paused)return '先继续传播，再出牌';
+    if(this.paused&&!willResume)return '先继续传播，再出牌';
     if(a.resource<s.cost)return `还需 ${Math.ceil(s.cost-a.resource)} 资源`;
     if(a.cooldown[d.id]>this.day)return `同名冷却还剩 ${(a.cooldown[d.id]-this.day).toFixed(1)} 天`;
     if(d.side!=='both'&&d.side!==a.side)return '不属于当前阵营';
-    if(['army','weaktie','lottery','debunk','radio','scout'].includes(d.id)&&this.targets(a.side).length===0)return '当前没有可作用的人物';
+    if(['army','lottery','debunk','radio','scout'].includes(d.id)&&this.targets(a.side).length===0)return '当前没有可作用的人物';
+    if(d.id==='weaktie'&&this.weakLinks().length===0)return '当前没有可用的跨圈转述路径';
     if(d.id==='vaxx'&&!this.nodes.some(n=>n.active&&!n.banned&&n.type!=='bot'&&n.state!==1&&n.shieldUntil<=this.day))return '当前没有需要保护的人物';
     if(d.id==='dig'&&!this.nodes.some(n=>n.active&&n.state===1&&n.silencedUntil<=this.day))return '没有仍在转述的传播源';
     if(d.id==='pr'&&!this.nodes.some(n=>n.active&&!n.banned&&['bigv','leader'].includes(n.type)&&n.shieldUntil<=this.day&&n.silencedUntil<=this.day&&n.boostUntil<=this.day))return '关键人物正在受保护、抑制或已封禁';
@@ -477,12 +529,13 @@ class Simulation {
     if(problem)return problem;
     const d=CARD_BY_ID[card.id],s=cardStats(card);
     a.resource-=s.cost;a.spent+=s.cost;a.cooldown[d.id]=this.day+d.cd;a.played++;
-    const action={id:++this.nextActionId,day:this.day,resolvedDay:this.day,side:a.side,card:d.id,level:card.level,cost:s.cost,sent:0,pending:0,arrived:0,changed:0,immediate:0,blocked:0,failed:0};
+    const action={id:++this.nextActionId,day:this.day,resolvedDay:this.day,side:a.side,card:d.id,level:card.level,cost:s.cost,sent:0,pending:0,arrived:0,changed:0,immediate:0,blocked:0,failed:0,targets:[],changedNodes:[],summary:''};
     this.actions.push(action);
     const before=this.nodes.map(n=>[n.state,n.shieldUntil,n.silencedUntil,n.boostUntil]);
     const queued=this.particles.length,detail=this.apply(a,card);
-    action.immediate=this.nodes.filter((n,i)=>n.state!==before[i][0]||n.shieldUntil!==before[i][1]||n.silencedUntil!==before[i][2]||n.boostUntil!==before[i][3]).length;
-    for(const p of this.particles.slice(queued)){p.action=action;action.sent++;action.pending++;}
+    action.changedNodes=this.nodes.filter((n,i)=>n.state!==before[i][0]||n.shieldUntil!==before[i][1]||n.silencedUntil!==before[i][2]||n.boostUntil!==before[i][3]).map(n=>n.id);
+    action.immediate=action.changedNodes.length;action.targets=[...action.changedNodes];action.summary=detail.split('\n')[0];
+    for(const p of this.particles.slice(queued)){p.action=action;action.sent++;action.pending++;action.targets.push(p.b);}
     if(d.id==='script')this.reversalAction=action;
     if(card.level===1){a.hand.splice(a.hand.indexOf(card),1);a.hand.push(this.drawCard(a));}
     this.record(`${a===this.player?'你':'人机'}使用「${d.name}」${card.level>1?' '+['','I','II','III'][card.level]:''}\n${detail}\n${cardRisk(card,a.side)}`, 'card',a.side).card=d.id;
@@ -503,7 +556,7 @@ class Simulation {
       case 'hot':this.effects.hot=this.day+s.duration;this.heat=Math.min(1,this.heat+s.heatDelta);this.ambiguity=Math.min(1.2,this.ambiguity+s.ambiguityDelta);break;
       case 'army':dispatch(ranked,s.amount+(this.effects.hot>this.day?s.bonusTargets:0),s.chance);break;
       case 'control':this.effects.control=this.day+s.duration;break;
-      case 'weaktie':dispatch(ranked.sort((x,y)=>this.adj[x.id].length-this.adj[y.id].length),s.amount,s.chance);break;
+      case 'weaktie':for(const p of this.weakLinks().slice(0,s.amount))this.send(p.a,p.b,'rumor',s.chance);break;
       case 'pr':{
         const n=this.nodes.filter(n=>n.active&&!n.banned&&['bigv','leader'].includes(n.type)&&n.shieldUntil<=this.day&&n.silencedUntil<=this.day&&n.boostUntil<=this.day).sort((x,y)=>(x.state===1?1:0)-(y.state===1?1:0)||this.adj[y.id].length-this.adj[x.id].length)[0];
         this.infect(n.id);n.boostUntil=this.day+s.duration;n.lastReason='大V公关带来持续转述';detail=`${TYPES[n.type].name} #${n.id+1} 开始带动 ${this.adj[n.id].length} 条连接，转述力 ×${s.multiplier}，持续 ${s.duration.toFixed(1)} 天。`;break;
@@ -534,7 +587,7 @@ class Simulation {
       case 'hot':return `讨论被推上热搜，热度升至 ${pct(this.heat)}，转述倍率 ×${s.multiplier}。\n谣言强度 R ${before.strength.toFixed(2)} → ${after.strength.toFixed(2)}。`;
       case 'army':return `${sent} 份转述发往高连接账号，抵达后的说服率 ${pct(s.chance)}。${before.hot?'\n组合 · 热搜加持，额外争取 '+s.bonusTargets+' 个目标。':''}`;
       case 'control':return `辟谣声音被压低，发声意愿 V ${before.voice.toFixed(2)} → ${after.voice.toFixed(2)}。\n辅导员和直接核实卡仍能行动。`;
-      case 'weaktie':return `${sent} 份转述沿弱连接发往低连接同学，尝试打开外圈。\n抵达后的说服率 ${pct(s.chance)}，证据保护仍有效。`;
+      case 'weaktie':return `${sent} 份转述沿真实跨社群连接派送，优先争取相信者较少的圈层。\n抵达后的说服率 ${pct(s.chance)}，证据保护仍有效。`;
       case 'pr':case 'vaxx':case 'dig':return detail;
       case 'agenda':return `重要性 i ${before.i.toFixed(3)} → ${after.i.toFixed(3)}。\n消息进入公共议程，R=i×a 也随之改变。`;
       case 'lottery':return `${sent} 份抽奖转述正在派送，热度升至 ${pct(this.heat)}。\n看见奖品不等于相信消息，抵达后再判断。`;
@@ -583,7 +636,8 @@ class Simulation {
     if(d.id==='farm')value=a.resource<120?38:5;
     if(d.id==='hot')value=this.effects.hot>this.day?0:12+c.i*.8+(this.effects.cold>this.day?15:0);
     if(d.id==='army')value=Math.min(s.amount,targets)*4+(this.effects.hot>this.day?12:0)+(c.i<6?22:0);
-    if(d.id==='weaktie'||d.id==='lottery')value=Math.min(s.amount,targets)*4+(c.i<8?18:0);
+    if(d.id==='weaktie')value=Math.min(s.amount,this.weakLinks().length)*4+(c.i<8?18:0);
+    if(d.id==='lottery')value=Math.min(s.amount,targets)*4+(c.i<8?18:0);
     if(d.id==='pr')value=23+(c.i<12?12:0);
     if(d.id==='control')value=this.effects.control>this.day?0:8+c.i*.7+(this.effects.chot>this.day?15:0);
     if(d.id==='agenda')value=this.day<6?18+this.day:0;
@@ -607,6 +661,7 @@ class Simulation {
     const trialSeed=(this.tickCount+1)*7867^(side==='rumor'?3751:9127)^((trial+1)*42851);
     Object.assign(s,{
       seed:this.seed,scenario:this.scenario,difficulty:this.difficulty,role:side,
+      scenarioResolved:this.scenarioResolved,scenarioOutcome:this.scenarioOutcome,scenarioNodes:[...this.scenarioNodes],scenarioSource:this.scenarioSource,scenarioArrivals:[...this.scenarioArrivals],
       random:seededRandom(trialSeed),moderationRandom:seededRandom(trialSeed^0x732acd),
       attention:this.attention,banRisk:this.banRisk,banCount:this.banCount,stepBelieved:0,
       tickCount:this.tickCount,day:this.day,ended:false,paused:false,
@@ -641,15 +696,19 @@ class Simulation {
       }
       if(s.tickCount%25===0){totalPressure+=s.pressure();observations++;}
     }
-    return {pressure:s.pressure()*.6+totalPressure/observations*.4,resource:s.player.resource,
+    const counts=s.counts();
+    return {pressure:s.pressure()*.6+totalPressure/observations*.4,belief:counts.i/counts.total,ended:s.ended,winner:s.ended?s.result.winner:'',resource:s.player.resource,
       hand:s.player.hand.reduce((value,card)=>value+s.evaluate(s.player,card),0)};
   }
   scoreActions(a,actions) {
     const bases=[0,1,2].map(trial=>this.project(a,{kind:'wait'},trial)),sign=a.side==='rumor'?1:-1;
     return actions.map(action=>{
       const trials=[0,1,2].map(trial=>this.project(a,action,trial));
-      const value=trials.reduce((total,result,i)=>total+(result.pressure-bases[i].pressure)*sign
-        +(result.resource-bases[i].resource)*.01+(result.hand-bases[i].hand)*.02,0)/3;
+      const value=trials.reduce((total,result,i)=>{
+        const base=bases[i],outcome=result.ended?(result.winner===a.side?1:-1):0,baseOutcome=base.ended?(base.winner===a.side?1:-1):0;
+        return total+(result.belief-base.belief)*this.counts().total*.65*sign+(result.pressure-base.pressure)*.35*sign
+          +(result.resource-base.resource)*.012+(result.hand-base.hand)*.015+(outcome-baseOutcome)*12;
+      },0)/3;
       return {action,value};
     }).sort((x,y)=>y.value-x.value);
   }
@@ -670,22 +729,29 @@ class Simulation {
   }
   aiTurn() {
     const a=this.opponent;
+    const establish=a.side==='rumor'&&(a.played===0||this.counts().i<8);
     const actions=a.hand.filter(card=>this.playProblem(a,card)===''&&!(['hot','cold','control','chot'].includes(card.id)&&this.effects[card.id]>this.day))
       .map(card=>({kind:'play',uid:card.uid}));
     // One material with the lowest estimated opportunity cost per main bounds the work.
-    for(const main of a.hand){
+    for(const main of establish?[]:a.hand){
       const materials=a.hand.filter(aux=>this.fusionProblem(a,main.uid,aux.uid)==='')
         .sort((x,y)=>this.evaluate(a,x)-this.evaluate(a,y));
       if(materials.length>0)actions.push({kind:'fusion',main:main.uid,aux:materials[0].uid});
     }
     if(this.drawProblem(a)==='')actions.push({kind:'draw'});
+    const urgent=establish?actions.filter(action=>{
+      if(action.kind!=='play')return false;
+      const card=a.hand.find(c=>c.uid===action.uid);
+      return CARD_BY_ID[card.id].category==='行动'||card.id==='script';
+    }):[];
+    const choices=urgent.length>0?urgent:actions;
     let action={kind:'wait'};
-    if(actions.length>0){
-      const ranked=this.scoreActions(a,actions);
-      if(ranked[0].value>.25){
+    if(choices.length>0){
+      const ranked=this.scoreActions(a,choices);
+      if(ranked[0].value>.25||urgent.length>0){
         let selected=ranked[0];
         if(this.difficulty===0&&a.decisionRandom()>.6){
-          const worthwhile=ranked.filter(item=>item.value>.25);
+          const worthwhile=urgent.length>0?ranked:ranked.filter(item=>item.value>.25);
           selected=worthwhile[Math.floor(a.decisionRandom()*worthwhile.length)];
         }
         action=selected.action;
@@ -705,6 +771,7 @@ class Simulation {
   step() {
     if(this.ended||this.paused)return;
     this.tickCount++;this.day=this.tickCount/100;this.stepBelieved=0;
+    if(!this.scenarioResolved&&this.day>=3)this.resolveScenario();
     this.heat+=(.25-this.heat)*.006;
     const f=this.formulas();
     if(this.reversalAt>0&&this.day>=this.reversalAt){
@@ -713,7 +780,7 @@ class Simulation {
       const target=this.targets('rumor').filter(n=>n.aware).sort((a,b)=>this.adj[b.id].length-this.adj[a.id].length).slice(0,this.reversalAmount);
       for(const n of target){
         const p=this.send(5,n.id,'rumor',CARD_PARAMS.script.chance);
-        if(p!==null&&this.reversalAction!==null){p.action=this.reversalAction;p.action.sent++;p.action.pending++;}
+        if(p!==null&&this.reversalAction!==null){p.action=this.reversalAction;p.action.sent++;p.action.pending++;p.action.targets.push(n.id);}
       }
       if(this.reversalAction!==null&&this.reversalAction.pending===0)this.completeDelivery(this.reversalAction);
       this.reversalAction=null;
@@ -756,7 +823,7 @@ class Simulation {
           const action=p.action;action.pending--;action.arrived++;
           action.resolvedDay=this.day;
           if(changed)target.lastReason=`「${CARD_BY_ID[action.card].name}」抵达，${action.side==='rumor'?'开始相信这条信息':'根据核实材料修正判断'}。`;
-          if(changed)action.changed++;else if(blocked)action.blocked++;else action.failed++;
+          if(changed){action.changed++;action.changedNodes.push(target.id);}else if(blocked)action.blocked++;else action.failed++;
           if(action.pending===0)this.completeDelivery(action);
         }
         this.particles.splice(k,1);
@@ -992,6 +1059,23 @@ class Simulation {
     }
     return moments.sort((a,b)=>a.day-b.day);
   }
+  archiveScore(key,won) {
+    const parts={
+      known:[['传播形态基准',100],['行动投入',-this.player.played*4],['演化用时',-this.day*3]],
+      cradle:[['传播形态基准',115],['演化用时',-this.day*8],['行动投入',-this.player.played*3]],
+      rebound:[['传播形态基准',110],['二次传播峰值',this.postPeak*40],['演化用时',-this.day*2]],
+      meme:[['传播形态基准',95],['演化用时',-this.day*3],['行动投入',-this.player.played*3]],
+      fade:[['传播形态基准',55]],stalemate:[['传播形态基准',35]]
+    }[key].map(([label,value])=>({label,value}));
+    parts.push({label:'达成阵营目标',value:won?15:0});
+    const raw=parts.reduce((n,part)=>n+part.value,0),score=Math.max(10,Math.min(100,Math.round(raw)));
+    const adjustment=score-raw;
+    if(Math.abs(adjustment)>.000001)parts.push({label:'取整与10–100分范围',value:adjustment});
+    const grade=score>=90?'S':score>=70?'A':score>=50?'B':'C';
+    const costs=parts.filter(part=>part.value<0).sort((a,b)=>a.value-b.value);
+    const reason=costs.length>0?`主要成本来自${costs[0].label}（${Math.abs(costs[0].value).toFixed(1)} 分）`:'本局按传播形态基准及阵营目标加分计入档案';
+    return {score,grade,parts,reason};
+  }
   finish() {
     if(this.event!==null)this.skipEvent('ended');
     this.ended=true;this.sample();
@@ -1007,16 +1091,11 @@ class Simulation {
     else if(c.i===0&&this.peak<.25&&this.actors.clarify.played>0)key='cradle';
     else if(c.aware/c.total>=.5&&ratio<=.12&&this.peak>=.3)key='meme';
     else if(ratio<=.07)key='fade';
-    let score=35;
-    if(key==='known')score=100-this.player.played*4-this.day*3;
-    if(key==='cradle')score=115-this.day*8-this.player.played*3;
-    if(key==='rebound')score=110+this.postPeak*40-this.day*2;
-    if(key==='meme')score=95-this.day*3-this.player.played*3;
-    if(key==='fade')score=55;
     const winner=ratio>=Simulation.WIN_THRESHOLD?'rumor':'clarify';
-    if(winner===this.role)score+=15;
-    score=Math.max(10,Math.min(100,Math.round(score)));
-    this.result={key,winner,won:winner===this.role,score,grade:score>=90?'S':score>=70?'A':score>=50?'B':'C',belief:ratio,aware:c.aware/c.total,moments:this.keyMoments()};
+    const archive=this.archiveScore(key,winner===this.role),own=this.actions.filter(a=>!a.fusion&&a.side===this.role);
+    this.result={key,winner,won:winner===this.role,score:archive.score,grade:archive.grade,scoreParts:archive.parts,scoreReason:archive.reason,
+      intervention:{effective:own.filter(a=>a.changed+a.immediate>0).length,changed:own.reduce((sum,a)=>sum+a.changed+a.immediate,0),sent:own.reduce((sum,a)=>sum+a.sent,0)},
+      belief:ratio,aware:c.aware/c.total,moments:this.keyMoments()};
     this.record(`${ROLES[winner].name}达成目标，传播进入档案`,'end',winner);
   }
 }

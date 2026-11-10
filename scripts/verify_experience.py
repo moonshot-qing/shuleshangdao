@@ -23,6 +23,7 @@ def main():
     parser.add_argument('--url')
     parser.add_argument('--demo',action='store_true')
     parser.add_argument('--demo-only',action='store_true')
+    parser.add_argument('--demo-seed',type=int)
     parser.add_argument('--browser',default=r'C:\Program Files\Google\Chrome\Application\chrome.exe')
     args=parser.parse_args()
     root=Path(__file__).resolve().parents[1]
@@ -84,7 +85,12 @@ def main():
             page.locator('#btn-pause').click();before=page.evaluate('({t:match.tickCount,elapsed:elapsedMs})')
             page.clock.fast_forward(5000);assert before==page.evaluate('({t:match.tickCount,elapsed:elapsedMs})')
             page.locator('#btn-pause').click()
-            page.locator('.card-face').first.click();page.locator('#btn-card-pause').click()
+            page.locator('.card-face').first.click()
+            assert page.evaluate('match.paused && readingPaused')
+            assert not page.locator('.card-full-rules').evaluate('el=>el.open')
+            assert '继续并出牌' in page.locator('#btn-detail-play').text_content()
+            page.locator('#btn-card-pause').click();assert not page.evaluate('match.paused')
+            page.locator('#btn-card-pause').click()
             assert page.evaluate('match.paused');assert page.locator('#btn-detail-play').is_disabled()
             page.locator('#btn-card-pause').click();assert not page.evaluate('match.paused')
             page.screenshot(animations='disabled',path=str(out/'detail-desktop.png'));page.locator('#btn-card-close').click()
@@ -188,6 +194,7 @@ def main():
             context=browser.new_context(viewport={'width':1440,'height':900},record_video_dir=str(out/'video'),record_video_size={'width':1440,'height':900})
             page=context.new_page();page.on('pageerror',lambda e:report['pageErrors'].append(str(e)))
             page.goto(args.url,wait_until='networkidle');enter(page,'clarify')
+            if args.demo_seed is not None:page.evaluate('seed=>startGame({...lastOptions,seed})',args.demo_seed)
             audio_offset=page.evaluate('performance.now()/1000')
             page.evaluate("""() => {
                 const dest=audio.context.createMediaStreamDestination();audio.gain.connect(dest);
