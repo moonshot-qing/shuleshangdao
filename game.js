@@ -13,7 +13,9 @@ let feedbacks=[],presentationMs=0,presentationAt=performance.now(),lastHand='';
 let readingPaused=false,guideMode='auto',focusedAction=0,impactNodes=new Set(),impactSide='rumor';
 let previousRun=null,comparisonRun=null;
 let stageObstacles=[];
+let screenObstacles=[];
 let crowdedNetwork=false;
+let cameraFocus=-1;
 let lastOptions={seed:8321,scenario:0,difficulty:1,role:'rumor'};
 const view={s:1,x:0,y:0};
 const pointers=new Map();let pinch=null,dragTravel=0;
@@ -29,11 +31,35 @@ function buildVisuals() {
 function resize() {
   const rect=canvas.getBoundingClientRect();W=rect.width;H=rect.height;DPR=devicePixelRatio;
   updateNetworkDensity(match.counts().total);
-  stageObstacles=[$('btn-stats'),$('view-controls'),$('btn-log'),$('phase-label').parentElement,$('fx-bar'),$('action-flash')]
+  screenObstacles=[$('btn-stats'),$('view-controls'),$('btn-log'),$('phase-label').parentElement,$('fx-bar'),$('action-flash')]
     .map(el=>el.getBoundingClientRect()).filter(r=>r.width>0&&r.height>0)
     .map(r=>({x:r.left-rect.left-3,y:r.top-rect.top-3,w:r.width+6,h:r.height+6}));
-  for(let g=0;g<4;g++){const {a,labelY}=communityArt(g);stageObstacles.push({x:Math.round(a.x)-28,y:labelY-10,w:56,h:14});}
+  updateViewObstacles();
   canvas.width=Math.round(W*DPR);canvas.height=Math.round(H*DPR);
+}
+function updateViewObstacles() {
+  stageObstacles=screenObstacles.map(r=>({x:(r.x-view.x)/view.s,y:(r.y-view.y)/view.s,w:r.w/view.s,h:r.h/view.s}));
+  for(let g=0;g<4;g++){const {a,labelY}=communityArt(g);stageObstacles.push({x:Math.round(a.x)-28,y:labelY-10,w:56,h:14});}
+}
+function applyView() {
+  updateViewObstacles();
+  for(const n of match.nodes)if(n.active){const {w,h}=nodeSize(n);avoidStageControls(visuals[n.id],w,h);}
+}
+function rememberViewFocus() {
+  const center={x:(W/2-view.x)/view.s,y:(H/2-view.y)/view.s};
+  cameraFocus=selectedNode>=0?selectedNode:match.nodes.filter(n=>n.active).reduce((a,b)=>
+    Math.hypot(visuals[a.id].x-center.x,visuals[a.id].y-center.y)<Math.hypot(visuals[b.id].x-center.x,visuals[b.id].y-center.y)?a:b).id;
+}
+function layoutNetwork() {
+  const oldW=W,oldH=H,adjusted=view.s!==1||view.x!==0||view.y!==0;
+  const focus=adjusted?cameraFocus:match.nodes.find(n=>n.active).id;
+  const relative={x:(view.x+visuals[focus].x*view.s)/W,y:(view.y+visuals[focus].y*view.s)/H};
+  resize();
+  const changed=W!==oldW||H!==oldH;
+  if(changed)for(const v of visuals){v.x*=W/oldW;v.y*=H/oldH;v.vx*=W/oldW;v.vy*=H/oldH;}
+  for(let k=0;k<30;k++)physics();
+  if(adjusted){view.x=W*relative.x-visuals[focus].x*view.s;view.y=H*relative.y-visuals[focus].y*view.s;}
+  applyView();
 }
 function anchor(group) {
   const compact=H<300&&W>760;
@@ -54,7 +80,8 @@ function nodeSize(n) {
   return {known,compact,w:compact?(large?24:18):known?30:24,h:compact?(large?32:24):known?40:32};
 }
 function physics() {
-  const sizes=match.nodes.map(nodeSize);
+  const sizes=match.nodes.map(nodeSize),counts=[0,0,0,0],slots=[0,0,0,0];
+  for(const n of match.nodes)if(n.active)counts[n.group]++;
   for(const n of match.nodes)if(n.active){
     const a=visuals[n.id];
     for(let j=n.id+1;j<match.nodes.length;j++)if(match.nodes[j].active){
@@ -69,12 +96,19 @@ function physics() {
     }
   }
   for(const n of match.nodes)if(n.active){
-    const v=visuals[n.id],a=anchor(n.group);
-    v.vx=(v.vx+(a.x-v.x)*.007)*.78;v.vy=(v.vy+(a.y-v.y)*.007)*.78;
-    v.x=Math.max(18,Math.min(W-18,v.x+v.vx));
-    v.y=Math.max(H<300?sizes[n.id].h/2+2:44,Math.min(H-6-sizes[n.id].h/2,v.y+v.vy));
-    const {w,h}=sizes[n.id];
-    for(const o of stageObstacles)if(v.x+w/2>o.x&&v.x-w/2<o.x+o.w&&v.y+h/2>o.y&&v.y-h/2<o.y+o.h){
+    const v=visuals[n.id],a=anchor(n.group),slot=slots[n.group]++,angle=slot*2.3999632297+n.group*1.7;
+    const radius=Math.sqrt((slot+.5)/counts[n.group]),rx=Math.min(92,W*.21),ry=Math.min(80,H*.24);
+    const home={x:a.x+Math.cos(angle)*radius*rx,y:a.y+Math.sin(angle)*radius*ry};
+    const {w,h}=sizes[n.id],edge=h/2+18;
+    v.vx=(v.vx+(home.x-v.x)*.007)*.78;
+    v.vy=(v.vy+(home.y-v.y)*.007+(Math.max(0,edge-v.y)-Math.max(0,v.y-(H-edge)))*.09)*.78;
+    v.x=Math.max(w/2+4,Math.min(W-w/2-4,v.x+v.vx));
+    v.y=Math.max(h/2+4,Math.min(H-h/2-6,v.y+v.vy));
+    avoidStageControls(v,w,h);
+  }
+}
+function avoidStageControls(v,w,h) {
+  for(const o of stageObstacles)if(v.x+w/2>o.x&&v.x-w/2<o.x+o.w&&v.y+h/2>o.y&&v.y-h/2<o.y+o.h){
       const moves=stageObstacles.flatMap(b=>{
         const left=b.x-w/2-1,right=b.x+b.w+w/2+1,top=b.y-h/2-1,bottom=b.y+b.h+h/2+1;
         return [{x:left,y:v.y},{x:right,y:v.y},{x:v.x,y:top},{x:v.x,y:bottom},{x:left,y:top},{x:right,y:top},{x:left,y:bottom},{x:right,y:bottom}];
@@ -82,7 +116,6 @@ function physics() {
         .filter(p=>p.x>=w/2+2&&p.x<=W-w/2-2&&p.y>=h/2+2&&p.y<=H-h/2-2&&!stageObstacles.some(b=>p.x+w/2>b.x&&p.x-w/2<b.x+b.w&&p.y+h/2>b.y&&p.y-h/2<b.y+b.h));
       moves.sort((a,b)=>Math.hypot(a.x-v.x,a.y-v.y)-Math.hypot(b.x-v.x,b.y-v.y));
       v.x=moves[0].x;v.y=moves[0].y;
-    }
   }
 }
 function drawNetwork(now) {
@@ -226,11 +259,11 @@ function startGame(options) {
   lastOptions={...options};selectedRole=options.role;selectedScenario=options.scenario;selectedDifficulty=options.difficulty;
   match=new Simulation(options);running=true;speed=1;elapsedMs=0;clockAt=performance.now();endShown=false;
   lastRevision=-1;messageCursor=0;selectedNode=-1;selectedCard=0;fusionMain=0;fusionAux=0;lastEvent=null;
-  view.s=1;view.x=0;view.y=0;pointers.clear();pinch=null;
+  view.s=1;view.x=0;view.y=0;cameraFocus=-1;pointers.clear();pinch=null;
   feedbacks=[];presentationMs=0;presentationAt=performance.now();lastHand='';dragTravel=0;lastVisualTick=-1;
   clearTimeout(actionTimer);$('action-flash').classList.remove('show');$('action-flash').replaceChildren();audio.reset();audio.startMusic();
   $('opponent-mark').parentElement.classList.remove('opponent-acted');
-  $('log-list').innerHTML='';$('event-toast').classList.add('hidden');$('node-detail').classList.add('hidden');
+  $('log-list').innerHTML='';$('announcement').textContent='';$('event-toast').classList.add('hidden');$('node-detail').classList.add('hidden');
   for(const d of dialogs)if(d.open)d.close();
   $('btn-speed').textContent='1×';$('btn-pause').textContent='Ⅱ';$('btn-pause').setAttribute('aria-label','暂停传播');$('btn-pause').setAttribute('aria-pressed','false');
   $('scene-label').textContent=SCENARIOS[options.scenario].label;$('rumor-title').textContent=SCENARIOS[options.scenario].title;
@@ -343,6 +376,7 @@ function updateEvent() {
   const problem=match.eventProblem();document.querySelectorAll('[data-event-choice]').forEach(b=>{b.disabled=problem!=='';b.title=problem;});
 }
 function flushMessages() {
+  const announcements=[];
   const tags={start:'最初投放',card:'卡牌干预',fusion:'融合强化',draw:'补充手牌',delivery:'行动结果',moderation:'平台风控',turn:'传播转折',event:'校园突发','event-followup':'事件后续',end:'传播归档',observe:'阶段观察',quote:'校园群聊',ambient:'校园见闻',scene:'本局变奏'};
   for(const msg of match.messages.slice(messageCursor)){
     const el=document.createElement('article'),lines=msg.text.split('\n');el.className='log-entry '+msg.side+' log-'+msg.kind;
@@ -365,13 +399,16 @@ function flushMessages() {
     if(msg.kind==='event-followup')audio.play('event');
     if(msg.kind==='moderation')audio.play('ban');
     if(msg.kind==='turn')audio.play('reversal');
-    $('announcement').textContent=msg.kind==='quote'?`${TYPES[msg.type].name}：${msg.text}`:msg.text;
+    const priority=msg.kind==='end'?4:['start','event','event-followup','scene','moderation','turn','ambient'].includes(msg.kind)?3:
+      ['card','fusion','draw','delivery'].includes(msg.kind)?(msg.side===match.role?2:1):0;
+    if(priority>0)announcements.push({priority,order:announcements.length,text:msg.kind==='start'?`你以${ROLES[match.role].name}开始，目标：${roleGoal(match.role)}`:lines[0].replace(/^(🎓|📸|📡|😂|🧾|📰|🚨|🎉|😭|💣)\s*/u,'')});
     if(['card','fusion','draw'].includes(msg.kind)&&msg.side===match.opponent.side){
       audio.play(msg.kind==='fusion'?'fusion':'ai');flashAction(`人机 · ${msg.kind==='card'?CARD_BY_ID[msg.card].name:lines[0]}`);
       const strip=$('opponent-mark').parentElement;strip.classList.remove('opponent-acted');strip.getBoundingClientRect();strip.classList.add('opponent-acted');
     }
   }
   messageCursor=match.messages.length;
+  if(announcements.length>0)$('announcement').textContent=announcements.sort((a,b)=>b.priority-a.priority||b.order-a.order).slice(0,2).map(a=>a.text).join('。');
   while($('log-list').children.length>50)$('log-list').lastChild.remove();
 }
 function renderFormulas() {
@@ -422,7 +459,16 @@ function showImpact(action) {
     view.s=Math.min(1.7,Math.max(.8,Math.min((W-80)/Math.max(36,right-left),(H-90)/Math.max(48,bottom-top))));
     view.x=W/2-(left+right)/2*view.s;view.y=H/2-(top+bottom)/2*view.s;
   }
-  refresh();
+  applyView();rememberViewFocus();refresh();
+}
+function sceneAdvice() {
+  if(!match.scenarioResolved)return SCENARIOS[match.scenario].plan;
+  if(match.scenario===0)return match.role==='rumor'?'社团接力阶段已结束，沿现有跨圈连接扩大转述。':'社团接力阶段已结束，跟进跨圈传播并核实相信者。';
+  if(match.scenario===1){
+    if(match.day<4.2)return match.role==='rumor'?'归档保护持续到第4.2天，先争取其他圈层。':'归档保护持续到第4.2天，跟进保护范围外的相信者。';
+    return match.role==='rumor'?'归档保护阶段已结束，优先接触仍在观望的同学。':'归档保护阶段已结束，补充核实并保护重要传播桥梁。';
+  }
+  return match.role==='rumor'?'晚高峰入群阶段已结束，争取生活群聊中尚未相信的人。':'晚高峰入群阶段已结束，核实生活群聊中仍相信的同学。';
 }
 function refreshLearning() {
   const own=match.actions.filter(a=>!a.fusion&&a.side===match.role),other=match.actions.filter(a=>!a.fusion&&a.side!==match.role);
@@ -446,7 +492,7 @@ function refreshLearning() {
     impactNodes=new Set(match.scenarioResolved?match.scenarioNodes:match.scenario===0?[match.scenarioSource]:[]);
     impactSide=match.scenario===0?match.nodes[match.scenarioSource].state===1?'rumor':'clarify':match.scenario===1?'clarify':'both';
     text=`${SCENARIOS[match.scenario].twist} · ${match.scenarioResolved?match.scenarioOutcome:SCENARIOS[match.scenario].rule}`;
-  }else if(own.length>0)text=`目标：${roleGoal(match.role)}。${SCENARIOS[match.scenario].plan}`;
+  }else if(own.length>0)text=`目标：${roleGoal(match.role)}。${sceneAdvice()}`;
   if($('guide-copy').textContent!==text)$('guide-copy').textContent=text;
   const visible=running&&guideMode!=='closed';
   $('process-note').classList.toggle('hidden',!visible);
@@ -526,7 +572,7 @@ function pickNode(mx,my) {
   const x=(mx-view.x)/view.s,y=(my-view.y)/view.s;
   let found=-1,distance=24;
   for(const n of match.nodes)if(n.active){const v=visuals[n.id],d=Math.hypot(x-v.x,y-v.y);if(d<distance){found=n.id;distance=d;}}
-  if(found>=0){selectedNode=found;positionNodeDetail();updateNodeDetail();$('node-detail').classList.remove('hidden');}
+  if(found>=0){selectedNode=found;positionNodeDetail();updateNodeDetail();$('node-detail').classList.remove('hidden');rememberViewFocus();}
 }
 function positionNodeDetail() {
   const inline=match.event!==null;
@@ -538,7 +584,7 @@ function updateNodeDetail() {
   $('node-person').replaceChildren(sprite.cloneNode());const target=$('node-person').firstChild;target.getContext('2d').drawImage(sprite,0,0);
   $('node-text').innerHTML=`<b>${TYPES[n.type].name} #${n.id+1}</b>${n.banned?'已封禁 · 本局不再传谣':['尚未相信','相信并转述','已核实 / 不再相信'][n.state]} · ${match.adj[n.id].length} 条连接<small>传播力 q = ${TYPES[n.type].inf} · 易感度 s = ${TYPES[n.type].sus}</small><small>${n.lastReason}${n.shieldUntil>match.day?' · 证据保护中':''}${n.silencedUntil>match.day?' · 转述受限':''}</small>`;
 }
-function zoom(factor) {const next=Math.max(.65,Math.min(2.8,view.s*factor));view.x=W/2-(W/2-view.x)*next/view.s;view.y=H/2-(H/2-view.y)*next/view.s;view.s=next;}
+function zoom(factor) {const next=Math.max(.65,Math.min(2.8,view.s*factor));view.x=W/2-(W/2-view.x)*next/view.s;view.y=H/2-(H/2-view.y)*next/view.s;view.s=next;applyView();rememberViewFocus();}
 function pointerPoint(e) {const r=canvas.getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top};}
 canvas.addEventListener('pointerdown',e=>{
   if(e.pointerType==='mouse'&&e.button!==0)return;
@@ -548,7 +594,7 @@ canvas.addEventListener('pointerdown',e=>{
 canvas.addEventListener('pointermove',e=>{
   if(!pointers.has(e.pointerId))return;
   const before=pointers.get(e.pointerId),p=pointerPoint(e);pointers.set(e.pointerId,p);dragTravel+=Math.hypot(p.x-before.x,p.y-before.y);
-  if(pointers.size===1){view.x+=p.x-before.x;view.y+=p.y-before.y;}
+  if(pointers.size===1){view.x+=p.x-before.x;view.y+=p.y-before.y;applyView();rememberViewFocus();}
   else if(pointers.size===2){const [a,b]=[...pointers.values()];zoom(Math.max(.65,Math.min(2.8,pinch.scale*Math.hypot(a.x-b.x,a.y-b.y)/pinch.distance))/view.s);}
 });
 canvas.addEventListener('pointerup',e=>{if(dragTravel<6){const p=pointerPoint(e);pickNode(p.x,p.y);}pointers.delete(e.pointerId);});
@@ -559,7 +605,7 @@ canvas.addEventListener('keydown',e=>{
   if(['ArrowRight','ArrowLeft'].includes(e.key)){
     e.preventDefault();const active=match.nodes.filter(n=>n.active),i=active.findIndex(n=>n.id===selectedNode);
     const next=i===-1?(e.key==='ArrowRight'?0:active.length-1):(i+(e.key==='ArrowRight'?1:-1)+active.length)%active.length;
-    selectedNode=active[next].id;positionNodeDetail();updateNodeDetail();$('node-detail').classList.remove('hidden');$('announcement').textContent=$('node-text').textContent;
+    selectedNode=active[next].id;positionNodeDetail();updateNodeDetail();$('node-detail').classList.remove('hidden');rememberViewFocus();$('announcement').textContent=$('node-text').textContent;
   }
 });
 $('btn-start').onclick=()=>{$('scene-step').classList.add('hidden');$('role-step').classList.remove('hidden');$('start-dialog').classList.add('choosing-role');renderRoles();};
@@ -567,6 +613,7 @@ $('btn-back').onclick=()=>{$('scene-step').classList.remove('hidden');$('role-st
 $('btn-deploy').onclick=async()=>{await audio.activate();startGame({seed:crypto.getRandomValues(new Uint32Array(1))[0],scenario:selectedScenario,difficulty:selectedDifficulty,role:selectedRole});};
 async function setPaused(paused){
   match.paused=paused;$('btn-pause').textContent=match.paused?'▷':'Ⅱ';$('btn-pause').setAttribute('aria-label',match.paused?'继续传播':'暂停传播');$('btn-pause').setAttribute('aria-pressed',String(match.paused));
+  $('announcement').textContent=match.paused?'传播已暂停。':'传播已继续。';
   if(match.paused){audio.stopMusic();audio.stop();}else{await audio.activate();audio.startMusic();}clockAt=performance.now();refresh();
 }
 function togglePause(){readingPaused=false;return setPaused(!match.paused);}
@@ -593,7 +640,7 @@ $('btn-scene-focus').onclick=()=>{
   }else{
     const a=anchor(match.scenario===1?1:2);view.x=W/2-a.x*view.s;view.y=H/2-a.y*view.s;
   }
-  refresh();
+  applyView();rememberViewFocus();refresh();
 };
 $('btn-fuse').onclick=openFusion;$('btn-fusion-close').onclick=()=>$('fusion-dialog').close();
 $('btn-fusion-back').onclick=()=>$('fusion-dialog').close();
@@ -605,7 +652,7 @@ $('btn-fusion-confirm').onclick=()=>{
 };
 $('btn-draw').onclick=()=>{const problem=match.draw(match.player);if(problem)$('announcement').textContent=problem;else{audio.play('select');refresh();}};
 $('btn-event-source').onclick=()=>{
-  selectedNode=match.event.source;const v=visuals[selectedNode];view.x=W/2-v.x*view.s;view.y=H/2-v.y*view.s;
+  selectedNode=match.event.source;const v=visuals[selectedNode];view.x=W/2-v.x*view.s;view.y=H/2-v.y*view.s;applyView();rememberViewFocus();
   positionNodeDetail();updateNodeDetail();$('node-detail').classList.remove('hidden');
   $('btn-node-close').scrollIntoView({block:'nearest'});
 };
@@ -615,13 +662,13 @@ function toggleLog() {
   const expanded=$('log').classList.toggle('expanded');$('btn-log').setAttribute('aria-expanded',String(expanded));$('btn-log').textContent=expanded?'传播动态 −':'传播动态 ＋';
 }
 $('btn-log').onclick=toggleLog;$('btn-log-close').onclick=toggleLog;
-$('btn-zoom-in').onclick=()=>zoom(1.15);$('btn-zoom-out').onclick=()=>zoom(1/1.15);$('btn-view-reset').onclick=()=>{view.s=1;view.x=0;view.y=0;};
+$('btn-zoom-in').onclick=()=>zoom(1.15);$('btn-zoom-out').onclick=()=>zoom(1/1.15);$('btn-view-reset').onclick=()=>{view.s=1;view.x=0;view.y=0;cameraFocus=-1;applyView();};
 $('btn-node-close').onclick=()=>{selectedNode=-1;$('node-detail').classList.add('hidden');canvas.focus({preventScroll:true});};
 $('volume').value=audio.volume;$('btn-mute').textContent=audio.enabled?'声音已开启':'声音已关闭';
 $('volume').oninput=e=>audio.setVolume(Number(e.target.value));
   $('btn-mute').onclick=async()=>{await audio.activate();audio.toggle();$('btn-mute').textContent=audio.enabled?'声音已开启':'声音已关闭';if(running&&!match.paused)audio.play('select');else audio.stop();};
-window.addEventListener('resize',resize);
-const stageObserver=new ResizeObserver(()=>{resize();for(let k=0;k<30;k++)physics();});
+window.addEventListener('resize',layoutNetwork);
+const stageObserver=new ResizeObserver(layoutNetwork);
 for(const el of [$('stage'),$('fx-bar'),$('btn-stats'),$('view-controls'),$('btn-log'),$('phase-label').parentElement,$('action-flash')])stageObserver.observe(el);
 reducedMotion.addEventListener('change',()=>{for(let k=0;k<60;k++)physics();});
 document.addEventListener('visibilitychange',async()=>{clockAt=performance.now();presentationAt=clockAt;if(document.hidden)audio.stop();else if(running&&!match.paused){await audio.activate();audio.startMusic();}});

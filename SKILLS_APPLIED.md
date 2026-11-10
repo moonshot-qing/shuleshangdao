@@ -1,5 +1,7 @@
 # GitHub Skills 筛选与实际应用记录
 
+2026-11-10 镜头与操作优化：按需取用game-ui-ux处理世界/屏幕坐标、旋转时的稳定观察锚点、阶段提示、横屏44px按钮和live-region优先级；web-design-guidelines复查触控、焦点及重复播报；webapp-testing补缩放/拖动/双向旋转、三种场景阶段、仿真触控与DOM通知过滤。使用旧视觉物理的固定样例隔离对照观察底部聚集，未改模拟或宣称平衡/真机/实际读屏器已验证。
+
 2026-11-10 实际画面复查：create-game-assets用于实际尺寸下的轮廓、密度和像素符号统一；game-ui-ux及web-design-guidelines用于提示/控件避让、长文本约束、事件人物卡的同面板布局和短横屏滚动；webapp-testing用于六尺寸/DPR2、3及第7天105人样例检查。只调整视觉和布局，保留原生技术栈、统一玩法入口、减少动态效果与模拟校验值。新增截图和未完成事项见最新实现报告。
 
 2026-11-10 美术家族扩展：本次阅读 create-game-assets 及其art-direction参考，按既有色板、描边、游戏实际尺寸制作手机专用帧、四社群地标、16张场景卡牌、6种结局；game-ui-ux用于画幅、手机/短横屏尺寸及网络空间；webapp-testing用于实际页面、六视口图鉴与流程检查。沿用原生Canvas/SVG素材，未引入位图、外部素材或运行依赖；制作记录与许可见assets/art-direction-brief.md、art-manifest.json。没有为本轮美术任务加载音频、AI或卡牌规则设计，模拟校验值保持不变。

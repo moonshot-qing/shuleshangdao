@@ -18,6 +18,8 @@
 
 ## 当前实现
 
+2026-11-10 后续五项优化：screenObstacles缓存DOM屏幕框，updateViewObstacles换算世界框；所有镜头入口同步applyView/rememberViewFocus，layoutNetwork保持锚点相对观察位置。新局cameraFocus重置-1。视觉位置采用社群内分散归位与柔性边缘回推。sceneAdvice按场景进展/归档保护到期给建议。矮横屏卡牌改左右排版、出牌44px。全局播报过滤普通群聊/统计，优先汇总关键消息，提示条与短提示不重复播报；结算焦点关联胜负和分项。新入口与对照见verify_view_refinement.py，模拟未改。
+
 2026-11-10 画面复查：玩法/回执已移入手牌区，顶部短提示替代中央大提示；nodeSize共用实际精灵尺寸与碰撞间距，窄屏/拥挤时用18×24帧。常驻按钮、效果与社群名称留视觉避让区；ResizeObserver更新画布尺寸与避让数据，startGame的resize重建新局几何。事件关联人物卡嵌入event-inspector-slot，短横屏事件使用视口高度；正常人物详情仍在网络。标题装饰统一复用像素符号，模拟和原对白未改。新增verify_presentation.py覆盖DPR2/3、7天105人样例、控件遮挡与事件选项，公开桌面/手机图在screenshots/04、05。
 
 2026-11-10 美术家族扩展：四社群实体建筑已进入对局；手机/短横屏使用独立12×16人物缓存帧（8类×3状态×2姿态），完整人物与肖像保留。安静边减淡，在途边按真实派送提亮。16张64×40场景插画用于手牌/详情，符号图用于融合/角标。结局画布改192×128，drawResult必传实际结局key，6种场景与目标金章分开。新增素材只作视觉，模拟与平衡未改。preview_art.py生成六视口与图鉴，并同步screenshots/03-美术图鉴.png；具体规格在assets/，检查结果见IMPLEMENTATION_REPORT.md最新节。
@@ -80,6 +82,7 @@ python scripts/verify_iteration_ui.py
 python scripts/verify_judging_ui.py
 python scripts/verify_ui_layout.py
 python scripts/verify_presentation.py
+python scripts/verify_view_refinement.py
 node scripts/verify_judging_balance.cjs compare 10 9831
 python scripts/verify_experience.py --demo-only --demo-seed 173
 ```

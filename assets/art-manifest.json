@@ -1,5 +1,5 @@
 {
-  "version": "2026-11-10-presentation-refinement",
+  "version": "2026-11-10-view-and-input-refinement",
   "source": "pixel-art.js",
   "provenance": "Original integer-grid Canvas and SVG artwork authored within this project; no third-party assets.",
   "license": "MIT (project license)",
@@ -192,7 +192,8 @@
       "uses": [
         "hand",
         "card-detail"
-      ]
+      ],
+      "shortLandscapeLayout": "40px artwork column beside text; 44px play button"
     },
     {
       "id": "community-landmarks",
@@ -363,6 +364,7 @@
     "presentationImages": [
       "screenshots/04-桌面对局.png",
       "screenshots/05-手机对局.png"
-    ]
+    ],
+    "viewInputGenerator": "scripts/verify_view_refinement.py"
   }
 }
