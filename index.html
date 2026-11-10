@@ -47,13 +47,13 @@
     <aside id="log" aria-label="传播动态记录"><h2><span>校园墙 · 传播动态</span><button id="btn-log-close" aria-label="收起传播动态">×</button></h2><p class="log-subtitle">校园群聊 · 突发见闻 · 传播过程</p><div id="log-list" tabindex="0" aria-label="传播动态，可滚动查看较早记录"></div></aside>
     <div id="fx-bar"></div>
     <div id="view-controls" aria-label="网络视图"><button id="btn-zoom-out" aria-label="缩小网络">−</button><button id="btn-view-reset">还原</button><button id="btn-zoom-in" aria-label="放大网络">＋</button></div>
-    <div id="process-note" role="status"><span id="guide-copy">红色是转述，绿色是核实。信息抵达后，判断才会改变。</span><button id="btn-guide-dismiss" aria-label="收起玩法提示">×</button></div>
     <div id="action-flash" aria-live="polite"></div>
-    <section id="event-toast" class="hidden" aria-labelledby="ev-title"><span class="event-label">校园突发</span><h2 id="ev-title"></h2><p id="ev-context"></p><button id="btn-event-source" class="text-button">查看关联人物 ↗</button><p id="ev-countdown"></p><div class="event-actions"><button id="btn-event-pause" class="text-button">暂停思考</button><button id="btn-event-skip" class="text-button">不回应，继续观察</button></div><div id="ev-options"></div><p class="event-skip-note">到期自动略过，不花资源；已有后续继续。</p></section>
+    <section id="event-toast" class="hidden" aria-labelledby="ev-title"><span class="event-label">校园突发</span><h2 id="ev-title"></h2><p id="ev-context"></p><button id="btn-event-source" class="text-button">查看关联人物 ↗</button><div id="event-inspector-slot"></div><p id="ev-countdown"></p><div class="event-actions"><button id="btn-event-pause" class="text-button">暂停思考</button><button id="btn-event-skip" class="text-button">不回应，继续观察</button></div><div id="ev-options"></div><p class="event-skip-note">到期自动略过，不花资源；已有后续继续。</p></section>
     <section id="node-detail" class="hidden" aria-label="人物详情"><button id="btn-node-close" class="close-button" aria-label="关闭人物详情">×</button><div id="node-person"></div><div id="node-text"></div></section>
   </main>
   <footer id="hand">
-    <div class="hand-top"><div><b><button id="btn-guide" class="hand-title" aria-controls="process-note" aria-expanded="true">你的手牌 · 玩法提示</button></b><span id="hand-hint"><span id="hand-guide">点牌看简要说明</span><button id="btn-impact" class="receipt-link" hidden></button></span></div><div class="hand-actions"><button id="btn-fuse">◇ 融牌</button><button id="btn-draw">＋ 抽牌 <span>35</span></button></div></div>
+    <div class="hand-top"><div><b><button id="btn-guide" class="hand-title" aria-controls="process-note" aria-expanded="true">你的手牌 · 玩法提示</button></b><span id="hand-hint"><button id="btn-impact" class="receipt-link" hidden></button></span></div><div class="hand-actions"><button id="btn-fuse">◇ 融牌</button><button id="btn-draw">＋ 抽牌 <span>35</span></button></div>
+    <div id="process-note" role="status" tabindex="0" aria-label="玩法与行动回执"><span id="guide-copy">红色是转述，绿色是核实。信息抵达后，判断才会改变。</span><button id="btn-guide-dismiss" aria-label="收起玩法提示">×</button></div></div>
     <div id="cards"></div>
   </footer>
 </div>

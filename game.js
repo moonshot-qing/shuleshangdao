@@ -12,6 +12,8 @@ let fusionMain=0,fusionAux=0,lastEvent=null,actionTimer=0;
 let feedbacks=[],presentationMs=0,presentationAt=performance.now(),lastHand='';
 let readingPaused=false,guideMode='auto',focusedAction=0,impactNodes=new Set(),impactSide='rumor';
 let previousRun=null,comparisonRun=null;
+let stageObstacles=[];
+let crowdedNetwork=false;
 let lastOptions={seed:8321,scenario:0,difficulty:1,role:'rumor'};
 const view={s:1,x:0,y:0};
 const pointers=new Map();let pinch=null,dragTravel=0;
@@ -26,6 +28,11 @@ function buildVisuals() {
 }
 function resize() {
   const rect=canvas.getBoundingClientRect();W=rect.width;H=rect.height;DPR=devicePixelRatio;
+  updateNetworkDensity(match.counts().total);
+  stageObstacles=[$('btn-stats'),$('view-controls'),$('btn-log'),$('phase-label').parentElement,$('fx-bar'),$('action-flash')]
+    .map(el=>el.getBoundingClientRect()).filter(r=>r.width>0&&r.height>0)
+    .map(r=>({x:r.left-rect.left-3,y:r.top-rect.top-3,w:r.width+6,h:r.height+6}));
+  for(let g=0;g<4;g++){const {a,labelY}=communityArt(g);stageObstacles.push({x:Math.round(a.x)-28,y:labelY-10,w:56,h:14});}
   canvas.width=Math.round(W*DPR);canvas.height=Math.round(H*DPR);
 }
 function anchor(group) {
@@ -34,21 +41,48 @@ function anchor(group) {
   const width=W-left-right;
   return {x:left+width*((compact?[.14,.38,.62,.86]:[.27,.72,.28,.73])[group]),y:H*(compact?.51:[.32,.31,.7,.7][group])};
 }
+function updateNetworkDensity(total) {crowdedNetwork=(W<760||H<300)&&total*27*35>W*(H-24)*.75;}
+function communityArt(group) {
+  const a=anchor(group),landscape=H<300&&W>760;
+  const width=landscape?64:W<760?80:96,height=Math.round(width*56/96);
+  const y=landscape?6:Math.round(a.y-(H<300?46:H<400?76:110));
+  return {a,width,height,y,labelY:landscape?H-9:y-7};
+}
+function nodeSize(n) {
+  const known=n.aware||['bigv','mkt','bot','leader','counselor'].includes(n.type);
+  const compact=W<760||H<300,large=known&&!crowdedNetwork&&!(W<760&&H<300);
+  return {known,compact,w:compact?(large?24:18):known?30:24,h:compact?(large?32:24):known?40:32};
+}
 function physics() {
-  const landscape=H<300&&W>760;
+  const sizes=match.nodes.map(nodeSize);
   for(const n of match.nodes)if(n.active){
     const a=visuals[n.id];
     for(let j=n.id+1;j<match.nodes.length;j++)if(match.nodes[j].active){
       const b=visuals[j],dx=a.x-b.x,dy=a.y-b.y,d2=dx*dx+dy*dy+2;
       const d=Math.sqrt(d2),f=Math.min(2.5,1200/d2)*Math.max(0,1-d/105);
       a.vx+=dx/d*f;a.vy+=dy/d*f;b.vx-=dx/d*f;b.vy-=dy/d*f;
+      const overlapX=(sizes[n.id].w+sizes[j].w)/2+3-Math.abs(dx),overlapY=(sizes[n.id].h+sizes[j].h)/2+3-Math.abs(dy);
+      if(overlapX>0&&overlapY>0){
+        if(overlapX<overlapY){const push=(dx>=0?1:-1)*overlapX*.7;a.vx+=push;b.vx-=push;}
+        else{const push=(dy>=0?1:-1)*overlapY*.7;a.vy+=push;b.vy-=push;}
+      }
     }
   }
   for(const n of match.nodes)if(n.active){
     const v=visuals[n.id],a=anchor(n.group);
     v.vx=(v.vx+(a.x-v.x)*.007)*.78;v.vy=(v.vy+(a.y-v.y)*.007)*.78;
     v.x=Math.max(18,Math.min(W-18,v.x+v.vx));
-    v.y=Math.max(H<300?26:50,Math.min(H-(landscape?22:H<300?32:65),v.y+v.vy));
+    v.y=Math.max(H<300?sizes[n.id].h/2+2:44,Math.min(H-6-sizes[n.id].h/2,v.y+v.vy));
+    const {w,h}=sizes[n.id];
+    for(const o of stageObstacles)if(v.x+w/2>o.x&&v.x-w/2<o.x+o.w&&v.y+h/2>o.y&&v.y-h/2<o.y+o.h){
+      const moves=stageObstacles.flatMap(b=>{
+        const left=b.x-w/2-1,right=b.x+b.w+w/2+1,top=b.y-h/2-1,bottom=b.y+b.h+h/2+1;
+        return [{x:left,y:v.y},{x:right,y:v.y},{x:v.x,y:top},{x:v.x,y:bottom},{x:left,y:top},{x:right,y:top},{x:left,y:bottom},{x:right,y:bottom}];
+      })
+        .filter(p=>p.x>=w/2+2&&p.x<=W-w/2-2&&p.y>=h/2+2&&p.y<=H-h/2-2&&!stageObstacles.some(b=>p.x+w/2>b.x&&p.x-w/2<b.x+b.w&&p.y+h/2>b.y&&p.y-h/2<b.y+b.h));
+      moves.sort((a,b)=>Math.hypot(a.x-v.x,a.y-v.y)-Math.hypot(b.x-v.x,b.y-v.y));
+      v.x=moves[0].x;v.y=moves[0].y;
+    }
   }
 }
 function drawNetwork(now) {
@@ -59,14 +93,11 @@ function drawNetwork(now) {
   ctx.save();ctx.translate(view.x,view.y);ctx.scale(view.s,view.s);
   const landscape=H<300&&W>760;
   for(let g=0;g<4;g++){
-    const a=anchor(g),wide=W<760?140:208,deep=landscape?64:H<400?108:140;
+    const {a,width,height,y,labelY}=communityArt(g),wide=W<760?140:208,deep=landscape?64:H<400?108:140;
     ctx.fillStyle=['#e8dece66','#e0e7dc66','#e6dfcf77','#e7dce155'][g];
     ctx.fillRect(Math.round(a.x-wide/2),Math.round(a.y-deep/2),wide,deep);
     ctx.fillStyle='#fffaf044';ctx.fillRect(Math.round(a.x-wide/2+5),Math.round(a.y-deep/2+5),wide-10,deep-10);
-    const width=landscape?64:W<760?80:96,height=Math.round(width*56/96);
-    const y=landscape?6:Math.round(a.y-(H<300?46:H<400?76:110));
     ctx.drawImage(getGroupLandmark(g),Math.round(a.x-width/2),y,width,height);
-    const labelY=landscape?H-9:y-7;
     ctx.fillStyle='#fffaf0dd';ctx.fillRect(Math.round(a.x)-28,labelY-10,56,14);
     ctx.fillStyle='#887c66';ctx.font='bold 10px Microsoft YaHei';ctx.textAlign='center';ctx.fillText(GROUP_NAMES[g],a.x,labelY);
   }
@@ -98,10 +129,8 @@ function drawNetwork(now) {
   const drawOrder=match.nodes.filter(n=>n.active).sort((a,b)=>visuals[a.id].y-visuals[b.id].y);
   for(const n of drawOrder){
     const v=visuals[n.id];if(!match.paused)v.appear=Math.min(1,v.appear+.07);
-    const known=n.aware||['bigv','mkt','bot','leader','counselor'].includes(n.type);
-    const compact=W<760||H<300,pose=!reducedMotion.matches&&presentationMs<v.speakingUntil?1:0;
+    const {known,compact,w,h}=nodeSize(n),pose=!reducedMotion.matches&&presentationMs<v.speakingUntil?1:0;
     const sprite=compact?getCompactSprite(n.type,n.state,pose):getSprite(n.type,n.state,pose);
-    const w=compact?(known?24:18):known?30:24,h=compact?(known?32:24):known?40:32;
     ctx.globalAlpha=n.banned?.5:known?1:.76;ctx.fillStyle='#b6ae9944';ctx.fillRect(v.x-w*.35,v.y+h/2-3,w*.7,3);
     ctx.drawImage(sprite,Math.round(v.x-w/2),Math.round(v.y-h/2),w,h);ctx.globalAlpha=1;
     const age=match.tickCount-n.changedAt;
@@ -118,15 +147,20 @@ function drawNetwork(now) {
       ctx.strokeRect(Math.round(v.x-w/2-2),Math.round(v.y-h/2-2),w+4,h+4);
     }
   }
-  for(const f of feedbacks){
+  // Small screens use the state marks and hand receipt, keeping faces unobstructed.
+  const labels=[],occupied=stageObstacles.concat(drawOrder.map(n=>{const v=visuals[n.id],s=nodeSize(n);return {x:v.x-s.w/2-2,y:v.y-s.h/2-2,w:s.w+4,h:s.h+4};}));
+  for(const f of W>=1000&&H>=300?feedbacks.toReversed():[]){
+    if(labels.length===2)break;
     const v=visuals[f.id],age=(presentationMs-f.at)/950;
-    ctx.globalAlpha=reducedMotion.matches?1:1-age*age;
-    const y=Math.max(14,v.y-23-(reducedMotion.matches?0:9*(1-(1-age)**3)));
     ctx.font='bold 11px Microsoft YaHei';ctx.textAlign='center';
     const width=ctx.measureText(f.text).width+10;
-    ctx.fillStyle='#fffdf6';ctx.fillRect(v.x-width/2,y-12,width,18);
+    const boxes=[{x:v.x-width/2,y:v.y-43,w:width,h:18},{x:v.x+22,y:v.y-9,w:width,h:18},{x:v.x-width-22,y:v.y-9,w:width,h:18}];
+    const box=boxes.find(b=>b.x>=0&&b.x+b.w<=W&&b.y>=8&&b.y+b.h<=H-8&&!occupied.concat(labels).some(o=>b.x<o.x+o.w&&b.x+b.w>o.x&&b.y<o.y+o.h&&b.y+b.h>o.y));
+    if(box===undefined)continue;
+    labels.push(box);ctx.globalAlpha=reducedMotion.matches?1:1-age*age;
+    ctx.fillStyle='#fffdf6';ctx.fillRect(box.x,box.y,box.w,box.h);
     ctx.strokeStyle=f.side==='rumor'?'#b9424e':'#178454';ctx.lineWidth=1;
-    ctx.strokeRect(v.x-width/2,y-12,width,18);ctx.fillStyle=ctx.strokeStyle;ctx.fillText(f.text,v.x,y+1);
+    ctx.strokeRect(box.x,box.y,box.w,box.h);ctx.fillStyle=ctx.strokeStyle;ctx.fillText(f.text,box.x+box.w/2,box.y+13);
     ctx.globalAlpha=1;
   }
   ctx.textAlign='left';
@@ -177,7 +211,7 @@ function renderDifficulties() {
 function showStart(step) {
   readingPaused=false;guideMode='closed';impactNodes.clear();
   running=false;audio.stop();audio.stopMusic();for(const d of dialogs)if(d.open)d.close();
-  feedbacks=[];clearTimeout(actionTimer);$('action-flash').classList.remove('show');
+  feedbacks=[];clearTimeout(actionTimer);$('action-flash').classList.remove('show');$('action-flash').replaceChildren();
   $('event-toast').classList.add('hidden');$('node-detail').classList.add('hidden');selectedNode=-1;
   if(step===1)selectedRole='';
   if(step===2)selectedRole=lastOptions.role==='rumor'?'clarify':'rumor';
@@ -194,7 +228,7 @@ function startGame(options) {
   lastRevision=-1;messageCursor=0;selectedNode=-1;selectedCard=0;fusionMain=0;fusionAux=0;lastEvent=null;
   view.s=1;view.x=0;view.y=0;pointers.clear();pinch=null;
   feedbacks=[];presentationMs=0;presentationAt=performance.now();lastHand='';dragTravel=0;lastVisualTick=-1;
-  clearTimeout(actionTimer);$('action-flash').classList.remove('show');audio.reset();audio.startMusic();
+  clearTimeout(actionTimer);$('action-flash').classList.remove('show');$('action-flash').replaceChildren();audio.reset();audio.startMusic();
   $('opponent-mark').parentElement.classList.remove('opponent-acted');
   $('log-list').innerHTML='';$('event-toast').classList.add('hidden');$('node-detail').classList.add('hidden');
   for(const d of dialogs)if(d.open)d.close();
@@ -286,15 +320,16 @@ function updateFusionButton() {
 function flashAction(text) {
   clearTimeout(actionTimer);$('action-flash').classList.remove('show');$('action-flash').innerHTML=`<span class="action-ink">${text}</span>`;
   $('action-flash').getBoundingClientRect();$('action-flash').classList.add('show');
-  actionTimer=setTimeout(()=>$('action-flash').classList.remove('show'),1400);
+  actionTimer=setTimeout(()=>{$('action-flash').classList.remove('show');$('action-flash').replaceChildren();},1400);
 }
 function updateEvent() {
   const e=match.event;
   $('event-toast').classList.toggle('hidden',e===null);
-  if(e===null){lastEvent=null;return;}
+  if(e===null){if(lastEvent!==null)positionNodeDetail();lastEvent=null;return;}
   if(e!==lastEvent){
+    positionNodeDetail();
     const definition=EMERGENCIES[e.id];
-    $('ev-title').textContent=definition.icon+' '+definition.title[match.role];$('ev-context').textContent=match.eventContext();
+    $('ev-title').innerHTML=eventTitleArt(definition.icon+' '+definition.title[match.role]);$('ev-context').textContent=match.eventContext();
     $('ev-options').innerHTML=definition.options[match.role].map((label,i)=>`<button data-event-choice="${i}"><b>${label}</b><small>${match.eventPreview(i)}</small></button>`).join('');
     document.querySelectorAll('[data-event-choice]').forEach(b=>b.onclick=()=>{
       const problem=match.chooseEvent(Number(b.dataset.eventChoice));
@@ -321,7 +356,7 @@ function flushMessages() {
     }else if(msg.kind==='observe'){
       el.innerHTML=`<details open><summary><span>阶段变化</span><time>第 ${msg.day.toFixed(1)} 天</time></summary><b>${lines[0]}</b>${lines.slice(1).map(line=>`<p>${line}</p>`).join('')}</details>`;
     }else{
-      el.innerHTML=`<div class="log-meta"><span>${tags[msg.kind]}</span><time>第 ${msg.day.toFixed(1)} 天</time></div><b>${lines[0]}</b>${lines.slice(1).map(line=>`<p>${line}</p>`).join('')}`;
+      el.innerHTML=`<div class="log-meta"><span>${tags[msg.kind]}</span><time>第 ${msg.day.toFixed(1)} 天</time></div><b>${eventTitleArt(lines[0])}</b>${lines.slice(1).map(line=>`<p>${line}</p>`).join('')}`;
     }
     $('log-list').prepend(el);
     if(msg.kind==='ambient')audio.play('event');
@@ -391,7 +426,7 @@ function showImpact(action) {
 }
 function refreshLearning() {
   const own=match.actions.filter(a=>!a.fusion&&a.side===match.role),other=match.actions.filter(a=>!a.fusion&&a.side!==match.role);
-  $('hand-guide').hidden=own.length>0;$('btn-impact').hidden=own.length===0;
+  $('hand-hint').classList.toggle('hidden',own.length===0);$('btn-impact').hidden=own.length===0;
   if(own.length>0){
     const action=own.at(-1),summary=summarizeAction(action);
     $('btn-impact').textContent=summary.title+' ↗';$('btn-impact').title=summary.detail;
@@ -401,7 +436,7 @@ function refreshLearning() {
     const summary=summarizeAction(other.at(-1));
     $('ai-status').textContent=match.lastAI+' · 落点 ↗';$('btn-ai-impact').title='上次出牌：'+summary.title+'。'+summary.detail;
   }
-  let text=`你的目标：${roleGoal(match.role)}。先点一张行动牌，查看费用与作用对象；出牌后看消息抵达。`;
+  let text=`你的目标：${roleGoal(match.role)}。点牌看费用与对象，出牌后看消息抵达。`;
   impactNodes.clear();
   if(guideMode==='impact'){
     const action=match.actions.find(a=>a.id===focusedAction),summary=summarizeAction(action);
@@ -411,7 +446,7 @@ function refreshLearning() {
     impactNodes=new Set(match.scenarioResolved?match.scenarioNodes:match.scenario===0?[match.scenarioSource]:[]);
     impactSide=match.scenario===0?match.nodes[match.scenarioSource].state===1?'rumor':'clarify':match.scenario===1?'clarify':'both';
     text=`${SCENARIOS[match.scenario].twist} · ${match.scenarioResolved?match.scenarioOutcome:SCENARIOS[match.scenario].rule}`;
-  }else if(own.length>0)text=`目标：${roleGoal(match.role)}。${SCENARIOS[match.scenario].plan} 点手牌上方的行动回执可查看实际落点。`;
+  }else if(own.length>0)text=`目标：${roleGoal(match.role)}。${SCENARIOS[match.scenario].plan}`;
   if($('guide-copy').textContent!==text)$('guide-copy').textContent=text;
   const visible=running&&guideMode!=='closed';
   $('process-note').classList.toggle('hidden',!visible);
@@ -423,6 +458,7 @@ function refresh() {
   collectFeedback();
   if(lastRevision!==match.revision)renderCards();
   const c=match.counts(),belief=c.i/c.total,aware=c.aware/c.total;
+  updateNetworkDensity(c.total);
   const m=match.moderation(),chance=(m.chance*100).toFixed(2);
   audio.setMusicIntensity(.22+match.heat*.45+aware*.45+m.attention/250);
   $('moderation-brief').textContent=`封号概率 ${chance}% / 步 · 风险 ${Math.round(m.risk)}`;
@@ -447,7 +483,7 @@ function refresh() {
   $('btn-card-pause').textContent=match.paused?'继续传播':'暂停思考';$('btn-fusion-pause').textContent=match.paused?'继续传播':'暂停思考';
   const seconds=Math.floor(elapsedMs/1000);$('clock').textContent=match.paused?'已暂停':`演化 ${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
   $('fx-bar').innerHTML=Object.entries(match.effects).filter(([,until])=>until>match.day).map(([id,until])=>`<span class="fx-chip ${CARD_BY_ID[id].side}">${CARD_BY_ID[id].name} ${(until-match.day).toFixed(1)} 天</span>`).join('')+(match.reversalAt>match.day?`<span class="fx-chip rumor">反转酝酿 ${(match.reversalAt-match.day).toFixed(1)} 天</span>`:'')+(match.memeUntil>match.day?`<span class="fx-chip clarify">玩梗遗忘 ×3 ${(match.memeUntil-match.day).toFixed(1)} 天</span>`:'')+(match.mediaUntil>match.day?`<span class="fx-chip rumor">外媒搬运 ×1.4 ${(match.mediaUntil-match.day).toFixed(1)} 天</span>`:'')+(match.examUntil>match.day?`<span class="fx-chip clarify">考试周 ×0.7 ${(match.examUntil-match.day).toFixed(1)} 天</span>`:'');
-  $('fx-bar').insertAdjacentHTML('beforeend',match.eventFollowups.map(item=>`<span class="fx-chip event-pending" title="${EMERGENCIES[item.id].title[item.role]} · ${GROUP_NAMES[item.group]}">${EMERGENCIES[item.id].icon} 后续 ${(item.due-match.day).toFixed(1)} 天</span>`).join(''));
+  $('fx-bar').insertAdjacentHTML('beforeend',match.eventFollowups.map(item=>`<span class="fx-chip event-pending" title="${EMERGENCIES[item.id].title[item.role]} · ${GROUP_NAMES[item.group]}">${pixelIcon(EVENT_SYMBOLS[EMERGENCIES[item.id].icon],18)} 后续 ${(item.due-match.day).toFixed(1)} 天</span>`).join(''));
   refreshLearning();
   updateButtons();flushMessages();updateEvent();
   if(selectedNode>=0)updateNodeDetail();
@@ -490,7 +526,12 @@ function pickNode(mx,my) {
   const x=(mx-view.x)/view.s,y=(my-view.y)/view.s;
   let found=-1,distance=24;
   for(const n of match.nodes)if(n.active){const v=visuals[n.id],d=Math.hypot(x-v.x,y-v.y);if(d<distance){found=n.id;distance=d;}}
-  if(found>=0){selectedNode=found;updateNodeDetail();$('node-detail').classList.remove('hidden');}
+  if(found>=0){selectedNode=found;positionNodeDetail();updateNodeDetail();$('node-detail').classList.remove('hidden');}
+}
+function positionNodeDetail() {
+  const inline=match.event!==null;
+  (inline?$('event-inspector-slot'):$('stage')).append($('node-detail'));
+  $('node-detail').classList.toggle('inline',inline);
 }
 function updateNodeDetail() {
   const n=match.nodes[selectedNode],sprite=getSprite(n.type,n.state,0);
@@ -518,7 +559,7 @@ canvas.addEventListener('keydown',e=>{
   if(['ArrowRight','ArrowLeft'].includes(e.key)){
     e.preventDefault();const active=match.nodes.filter(n=>n.active),i=active.findIndex(n=>n.id===selectedNode);
     const next=i===-1?(e.key==='ArrowRight'?0:active.length-1):(i+(e.key==='ArrowRight'?1:-1)+active.length)%active.length;
-    selectedNode=active[next].id;updateNodeDetail();$('node-detail').classList.remove('hidden');$('announcement').textContent=$('node-text').textContent;
+    selectedNode=active[next].id;positionNodeDetail();updateNodeDetail();$('node-detail').classList.remove('hidden');$('announcement').textContent=$('node-text').textContent;
   }
 });
 $('btn-start').onclick=()=>{$('scene-step').classList.add('hidden');$('role-step').classList.remove('hidden');$('start-dialog').classList.add('choosing-role');renderRoles();};
@@ -548,7 +589,7 @@ $('btn-scene-focus').onclick=()=>{
   guideMode='scene';
   if(match.scenario===0){
     selectedNode=match.scenarioSource;const v=visuals[selectedNode];view.x=W/2-v.x*view.s;view.y=H/2-v.y*view.s;
-    updateNodeDetail();$('node-detail').classList.remove('hidden');
+    positionNodeDetail();updateNodeDetail();$('node-detail').classList.remove('hidden');
   }else{
     const a=anchor(match.scenario===1?1:2);view.x=W/2-a.x*view.s;view.y=H/2-a.y*view.s;
   }
@@ -565,7 +606,8 @@ $('btn-fusion-confirm').onclick=()=>{
 $('btn-draw').onclick=()=>{const problem=match.draw(match.player);if(problem)$('announcement').textContent=problem;else{audio.play('select');refresh();}};
 $('btn-event-source').onclick=()=>{
   selectedNode=match.event.source;const v=visuals[selectedNode];view.x=W/2-v.x*view.s;view.y=H/2-v.y*view.s;
-  updateNodeDetail();$('node-detail').classList.remove('hidden');
+  positionNodeDetail();updateNodeDetail();$('node-detail').classList.remove('hidden');
+  $('btn-node-close').scrollIntoView({block:'nearest'});
 };
 $('btn-event-skip').onclick=()=>{match.skipEvent('skipped');refresh();};
 $('btn-stats').onclick=()=>{const expanded=$('stats').classList.toggle('expanded');$('btn-stats').setAttribute('aria-expanded',String(expanded));$('btn-stats').textContent=expanded?'传播指标 −':'传播指标 ＋';};
@@ -579,6 +621,8 @@ $('volume').value=audio.volume;$('btn-mute').textContent=audio.enabled?'声音�
 $('volume').oninput=e=>audio.setVolume(Number(e.target.value));
   $('btn-mute').onclick=async()=>{await audio.activate();audio.toggle();$('btn-mute').textContent=audio.enabled?'声音已开启':'声音已关闭';if(running&&!match.paused)audio.play('select');else audio.stop();};
 window.addEventListener('resize',resize);
+const stageObserver=new ResizeObserver(()=>{resize();for(let k=0;k<30;k++)physics();});
+for(const el of [$('stage'),$('fx-bar'),$('btn-stats'),$('view-controls'),$('btn-log'),$('phase-label').parentElement,$('action-flash')])stageObserver.observe(el);
 reducedMotion.addEventListener('change',()=>{for(let k=0;k<60;k++)physics();});
 document.addEventListener('visibilitychange',async()=>{clockAt=performance.now();presentationAt=clockAt;if(document.hidden)audio.stop();else if(running&&!match.paused){await audio.activate();audio.startMusic();}});
 setInterval(()=>{

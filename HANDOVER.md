@@ -18,6 +18,8 @@
 
 ## 当前实现
 
+2026-11-10 画面复查：玩法/回执已移入手牌区，顶部短提示替代中央大提示；nodeSize共用实际精灵尺寸与碰撞间距，窄屏/拥挤时用18×24帧。常驻按钮、效果与社群名称留视觉避让区；ResizeObserver更新画布尺寸与避让数据，startGame的resize重建新局几何。事件关联人物卡嵌入event-inspector-slot，短横屏事件使用视口高度；正常人物详情仍在网络。标题装饰统一复用像素符号，模拟和原对白未改。新增verify_presentation.py覆盖DPR2/3、7天105人样例、控件遮挡与事件选项，公开桌面/手机图在screenshots/04、05。
+
 2026-11-10 美术家族扩展：四社群实体建筑已进入对局；手机/短横屏使用独立12×16人物缓存帧（8类×3状态×2姿态），完整人物与肖像保留。安静边减淡，在途边按真实派送提亮。16张64×40场景插画用于手牌/详情，符号图用于融合/角标。结局画布改192×128，drawResult必传实际结局key，6种场景与目标金章分开。新增素材只作视觉，模拟与平衡未改。preview_art.py生成六视口与图鉴，并同步screenshots/03-美术图鉴.png；具体规格在assets/，检查结果见IMPLEMENTATION_REPORT.md最新节。
 
 2026-11-10 界面复查已完成：胜负先于档案评级展示，评分仍默认展开；结算初始焦点在标题、滚动从顶部开始，底部固定换身份重玩/原身份重试/重新选择事件。融合确认与返回也固定可见，费用明确；预览风险标为强化牌“出牌时”的变化。手机手牌效果、风险分行；网络左右键查看人物并播报，关闭后返回网络焦点。删去重复无效果/免责式说明，保留必要玩法限制。新增六视口检查 scripts/verify_ui_layout.py；本次未调平衡参数。
@@ -77,6 +79,7 @@ python scripts/verify_experience.py
 python scripts/verify_iteration_ui.py
 python scripts/verify_judging_ui.py
 python scripts/verify_ui_layout.py
+python scripts/verify_presentation.py
 node scripts/verify_judging_balance.cjs compare 10 9831
 python scripts/verify_experience.py --demo-only --demo-seed 173
 ```

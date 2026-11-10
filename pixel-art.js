@@ -215,6 +215,10 @@ const PIXEL_ICONS={
 function pixelIcon(id,size) {
   return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true" shape-rendering="crispEdges">${PIXEL_ICONS[id]}</svg>`;
 }
+const EVENT_SYMBOLS={'🎓':'cold','📸':'dig','📡':'radio','😂':'lottery','🧾':'debunk','📰':'agenda','🚨':'control','🎉':'farm','😭':'vaxx','💣':'scout'};
+function eventTitleArt(title) {
+  return title.replace(/^(🎓|📸|📡|😂|🧾|📰|🚨|🎉|😭|💣)\s*/u,symbol=>pixelIcon(EVENT_SYMBOLS[symbol.trim()],18));
+}
 
 const cardPerson=(x,y,coat)=>`<g transform="translate(${x} ${y})">${ir(3,0,8,9,A.ink)+ir(4,1,6,2,A.hair)+ir(4,3,6,5,A.skin)+ir(5,4,1,1,A.ink)+ir(8,4,1,1,A.ink)+ir(1,9,12,10,A.ink)+ir(2,10,10,7,coat)+ir(3,19,3,3,A.ink)+ir(8,19,3,3,A.ink)}</g>`;
 const CARD_ILLUSTRATIONS={

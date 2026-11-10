@@ -1,5 +1,5 @@
 {
-  "version": "2026-11-10-campus-art-families",
+  "version": "2026-11-10-presentation-refinement",
   "source": "pixel-art.js",
   "provenance": "Original integer-grid Canvas and SVG artwork authored within this project; no third-party assets.",
   "license": "MIT (project license)",
@@ -97,6 +97,10 @@
         "unheardOrdinary": [
           18,
           24
+        ],
+        "crowdedOrNarrow": [
+          18,
+          24
         ]
       },
       "collision": "none; existing node picking remains in game.js",
@@ -146,7 +150,9 @@
       "collision": "none; host button owns interaction",
       "uses": [
         "fusion",
-        "role-badge"
+        "role-badge",
+        "event-title",
+        "event-followup"
       ]
     },
     {
@@ -351,6 +357,12 @@
       "No player art-preference study",
       "No balance inference"
     ],
-    "simulationSha256": "0382fb7f9efec34e9b660de94be097f0a2272f9136b8343e0c96cf6b9c9a337e"
+    "simulationSha256": "0382fb7f9efec34e9b660de94be097f0a2272f9136b8343e0c96cf6b9c9a337e",
+    "presentationGenerator": "scripts/verify_presentation.py",
+    "presentationReport": "test-results/presentation-review/report.json",
+    "presentationImages": [
+      "screenshots/04-桌面对局.png",
+      "screenshots/05-手机对局.png"
+    ]
   }
 }
