@@ -1,5 +1,7 @@
 # GitHub Skills 筛选与实际应用记录
 
+2026-11-10 美术家族扩展：本次阅读 create-game-assets 及其art-direction参考，按既有色板、描边、游戏实际尺寸制作手机专用帧、四社群地标、16张场景卡牌、6种结局；game-ui-ux用于画幅、手机/短横屏尺寸及网络空间；webapp-testing用于实际页面、六视口图鉴与流程检查。沿用原生Canvas/SVG素材，未引入位图、外部素材或运行依赖；制作记录与许可见assets/art-direction-brief.md、art-manifest.json。没有为本轮美术任务加载音频、AI或卡牌规则设计，模拟校验值保持不变。
+
 2026-11-10 界面复查：本次按需阅读 web-design-guidelines、game-ui-ux、webapp-testing；重新获取[界面准则原文](https://raw.githubusercontent.com/vercel-labs/web-interface-guidelines/main/command.md)。据此调整胜负/评分层级、窄屏卡牌可读性、融合与重玩固定操作区，修复结算初始焦点导致的滚动位置，补人物键盘播报及返回焦点；删减重复解释，保留真实玩法状态。新增 verify_ui_layout.py 检查六种视口的溢出、可操作性和滚动阅读，并查看生成截图；既有体验检查通过，详见 IMPLEMENTATION_REPORT.md 当前节。没有为本轮界面任务重复加载美术生成、AI或音频设计，也没有新增运行依赖或批量平衡结论。
 
 2026-11-10 评审问题改进：按需使用 card-game（真实跨社群目标、统一可用性与结算、资源曲线和固定种子对照）、game-ui-ux（简要/完整规则分层、阅读自动暂停、矮屏操作区、同网络对照）、game-feel（派送/抵达/实际状态变化回执及定位）与 ai-behavior-trees-utility-ai（局势收益、终局目标与低传播时的行动优先级）。沿用直接评分和条件，无行为树/通用框架。素材与Web Audio继续复用已有实现。清理开发机安装路径，保留第三方技能仓库、版本、哈希与许可。实际检查和未完成事项见 IMPLEMENTATION_REPORT.md 当前节。

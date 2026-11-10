@@ -29,12 +29,13 @@ function resize() {
   canvas.width=Math.round(W*DPR);canvas.height=Math.round(H*DPR);
 }
 function anchor(group) {
-  const compact=H<300;
+  const compact=H<300&&W>760;
   const left=compact?24:W>1000?205:W>760?180:24,right=compact?24:W>1000?240:W>760?205:24;
   const width=W-left-right;
   return {x:left+width*((compact?[.14,.38,.62,.86]:[.27,.72,.28,.73])[group]),y:H*(compact?.51:[.32,.31,.7,.7][group])};
 }
 function physics() {
+  const landscape=H<300&&W>760;
   for(const n of match.nodes)if(n.active){
     const a=visuals[n.id];
     for(let j=n.id+1;j<match.nodes.length;j++)if(match.nodes[j].active){
@@ -47,7 +48,7 @@ function physics() {
     const v=visuals[n.id],a=anchor(n.group);
     v.vx=(v.vx+(a.x-v.x)*.007)*.78;v.vy=(v.vy+(a.y-v.y)*.007)*.78;
     v.x=Math.max(18,Math.min(W-18,v.x+v.vx));
-    v.y=Math.max(H<300?26:50,Math.min(H-(H<300?22:65),v.y+v.vy));
+    v.y=Math.max(H<300?26:50,Math.min(H-(landscape?22:H<300?32:65),v.y+v.vy));
   }
 }
 function drawNetwork(now) {
@@ -56,38 +57,52 @@ function drawNetwork(now) {
   ctx.strokeStyle='#d4cebf30';ctx.lineWidth=.7;ctx.beginPath();
   for(let x=0;x<W;x+=20){ctx.moveTo(x,0);ctx.lineTo(x,H);}for(let y=0;y<H;y+=20){ctx.moveTo(0,y);ctx.lineTo(W,y);}ctx.stroke();
   ctx.save();ctx.translate(view.x,view.y);ctx.scale(view.s,view.s);
+  const landscape=H<300&&W>760;
   for(let g=0;g<4;g++){
-    const a=anchor(g);ctx.fillStyle=['#e8dece55','#e0e7dc77','#e6dfcf77','#e7dce155'][g];
-    ctx.beginPath();ctx.ellipse(a.x,a.y+15,W<760?75:112,H<400?50:78,0,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='#b0aa98';ctx.font='10px Microsoft YaHei';ctx.textAlign='center';ctx.fillText(GROUP_NAMES[g],a.x,H<300?15:a.y+(H<400?65:98));
-    if(H>=300){
-      ctx.globalAlpha=.45;drawGroupSign(ctx,Math.round(a.x)-8,Math.round(a.y)+(H<400?43:76),g);ctx.globalAlpha=1;
-      ctx.fillRect(a.x-8,a.y+(H<400?72:105),16,2);
-    }
+    const a=anchor(g),wide=W<760?140:208,deep=landscape?64:H<400?108:140;
+    ctx.fillStyle=['#e8dece66','#e0e7dc66','#e6dfcf77','#e7dce155'][g];
+    ctx.fillRect(Math.round(a.x-wide/2),Math.round(a.y-deep/2),wide,deep);
+    ctx.fillStyle='#fffaf044';ctx.fillRect(Math.round(a.x-wide/2+5),Math.round(a.y-deep/2+5),wide-10,deep-10);
+    const width=landscape?64:W<760?80:96,height=Math.round(width*56/96);
+    const y=landscape?6:Math.round(a.y-(H<300?46:H<400?76:110));
+    ctx.drawImage(getGroupLandmark(g),Math.round(a.x-width/2),y,width,height);
+    const labelY=landscape?H-9:y-7;
+    ctx.fillStyle='#fffaf0dd';ctx.fillRect(Math.round(a.x)-28,labelY-10,56,14);
+    ctx.fillStyle='#887c66';ctx.font='bold 10px Microsoft YaHei';ctx.textAlign='center';ctx.fillText(GROUP_NAMES[g],a.x,labelY);
   }
   ctx.textAlign='left';
   const inspect=selectedNode>=0?new Set(match.adj[selectedNode]):new Set();
   for(const [i,j] of match.edges){
     const a=match.nodes[i],b=match.nodes[j];if(!a.active||!b.active)continue;
     const p=visuals[i],q=visuals[j];
-    const on=a.state===1||b.state===1;
-    ctx.strokeStyle=selectedNode===i||selectedNode===j?'#a89363aa':on?'#ca8b8747':'#8c938c1c';
-    ctx.lineWidth=on?1.2:.7;
+    const selected=selectedNode===i||selectedNode===j;
+    ctx.strokeStyle=selected?'#a8936399':a.group===b.group?'#8c938c20':'#8c938c12';
+    ctx.lineWidth=selected?1.4:.7;
     ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.stroke();
+  }
+  const deliveryEdges=new Map();
+  for(const p of match.particles)deliveryEdges.set(p.a<p.b?p.a+':'+p.b:p.b+':'+p.a,p);
+  for(const p of deliveryEdges.values()){
+    const a=visuals[p.a],b=visuals[p.b];
+    ctx.strokeStyle=p.kind==='rumor'?'#c75b655e':'#34846b66';ctx.lineWidth=1.4;
+    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
   }
   for(const p of match.particles){
     const a=visuals[p.a],b=visuals[p.b],x=a.x+(b.x-a.x)*p.t,y=a.y+(b.y-a.y)*p.t;
-    ctx.fillStyle=p.kind==='rumor'?'#d64a56':'#238b6b';ctx.globalAlpha=.22;ctx.fillRect(x-5,y-5,10,10);ctx.globalAlpha=1;ctx.fillRect(x-2,y-2,4,4);
-    ctx.fillStyle='#fffdf6';ctx.fillRect(x-1,y-1,1,1);
+    ctx.fillStyle=p.kind==='rumor'?'#d64a56':'#238b6b';
+    if(!reducedMotion.matches){ctx.globalAlpha=.15;ctx.fillRect(Math.round(x)-5,Math.round(y)-5,10,10);ctx.globalAlpha=1;}
+    if(p.kind==='rumor')ctx.fillRect(Math.round(x)-3,Math.round(y)-2,6,4);
+    else{ctx.fillRect(Math.round(x)-2,Math.round(y)-3,4,6);ctx.fillRect(Math.round(x)-3,Math.round(y)-1,6,2);}
+    ctx.fillStyle='#fffdf6';ctx.fillRect(Math.round(x)-1,Math.round(y)-1,2,1);
   }
   const drawOrder=match.nodes.filter(n=>n.active).sort((a,b)=>visuals[a.id].y-visuals[b.id].y);
   for(const n of drawOrder){
     const v=visuals[n.id];if(!match.paused)v.appear=Math.min(1,v.appear+.07);
     const known=n.aware||['bigv','mkt','bot','leader','counselor'].includes(n.type);
-    const factor=W<760?.66:W<1050?.72:.82;
-    const scale=factor*(known?1:.7),pose=!reducedMotion.matches&&presentationMs<v.speakingUntil?1:0;
-    const sprite=getSprite(n.type,n.state,pose),w=sprite.width*scale,h=sprite.height*scale;
-    ctx.globalAlpha=n.banned?.5:known?1:.58;ctx.fillStyle='#b6ae9944';ctx.fillRect(v.x-w*.35,v.y+h/2-3,w*.7,3);
+    const compact=W<760||H<300,pose=!reducedMotion.matches&&presentationMs<v.speakingUntil?1:0;
+    const sprite=compact?getCompactSprite(n.type,n.state,pose):getSprite(n.type,n.state,pose);
+    const w=compact?(known?24:18):known?30:24,h=compact?(known?32:24):known?40:32;
+    ctx.globalAlpha=n.banned?.5:known?1:.76;ctx.fillStyle='#b6ae9944';ctx.fillRect(v.x-w*.35,v.y+h/2-3,w*.7,3);
     ctx.drawImage(sprite,Math.round(v.x-w/2),Math.round(v.y-h/2),w,h);ctx.globalAlpha=1;
     const age=match.tickCount-n.changedAt;
     if(!reducedMotion.matches&&n.changedAt>0&&age>0&&age<9){ctx.strokeStyle=n.state===1?'#d64a56':'#238b6b';ctx.globalAlpha=(9-age)/12;ctx.strokeRect(v.x-w/2-age,v.y-h/2-age,w+age*2,h+age*2);ctx.globalAlpha=1;}
@@ -194,7 +209,7 @@ function renderCards() {
   lastHand=hand;
   $('cards').innerHTML=match.player.hand.map(card=>{
     const d=CARD_BY_ID[card.id],s=cardStats(card);
-    return `<article class="card ${d.side} ${card.level>1?'upgraded':''}" id="card-${card.uid}"><button class="card-face" data-detail="${card.uid}" aria-describedby="card-status-${card.uid}" aria-label="查看${d.name}的说明"><span class="card-head"><span class="card-art">${pixelIcon(d.id,48)}</span><span class="card-level">${levelName(card.level)}</span></span><span class="card-name">${d.name}</span><span class="card-effect">${cardDescription(card)}</span><span class="card-status" id="card-status-${card.uid}"></span></button><div class="card-bottom"><span class="card-rarity">${'◆'.repeat(d.rarity)}</span><button class="card-play" data-play="${card.uid}" aria-label="使用${d.name}，花费 ${s.cost} ${ROLES[match.role].resource}" aria-describedby="card-status-${card.uid}">出牌 ${s.cost}</button></div></article>`;
+    return `<article class="card ${d.side} ${card.level>1?'upgraded':''}" id="card-${card.uid}"><button class="card-face" data-detail="${card.uid}" aria-describedby="card-status-${card.uid}" aria-label="查看${d.name}的说明"><span class="card-head"><span class="card-art">${cardIllustration(d.id,128)}</span><span class="card-level">${levelName(card.level)}</span></span><span class="card-name">${d.name}</span><span class="card-effect">${cardDescription(card)}</span><span class="card-status" id="card-status-${card.uid}"></span></button><div class="card-bottom"><span class="card-rarity">${'◆'.repeat(d.rarity)}</span><button class="card-play" data-play="${card.uid}" aria-label="使用${d.name}，花费 ${s.cost} ${ROLES[match.role].resource}" aria-describedby="card-status-${card.uid}">出牌 ${s.cost}</button></div></article>`;
   }).join('');
   document.querySelectorAll('[data-detail]').forEach(b=>b.onclick=()=>openCard(Number(b.dataset.detail)));
   document.querySelectorAll('[data-play]').forEach(b=>b.onclick=()=>playCard(Number(b.dataset.play)));
@@ -215,7 +230,7 @@ function updateButtons() {
 }
 function openCard(uid) {
   selectedCard=uid;const card=match.player.hand.find(c=>c.uid===uid),d=CARD_BY_ID[card.id],s=cardStats(card);
-  $('card-description').innerHTML=`<div class="detail-heading">${pixelIcon(d.id,48)}<div><span class="detail-tag">${d.side==='both'?'通用牌':ROLES[d.side].name} · ${['','普通','稀有','史诗'][d.rarity]} · 强化 ${levelName(card.level)}</span><h2>${d.name}</h2></div></div><p class="detail-effect">${cardDescription(card)}</p><p class="detail-target"><b>作用对象</b>${d.target}</p><div class="detail-facts"><div>资源费用<b>${s.cost}</b></div><div>同名冷却<b>${d.cd} 天</b></div><div>${d.duration>0?'效果时长':'生效方式'}<b>${d.duration>0?s.duration.toFixed(1)+' 天':'抵达/即时'}</b></div></div><p id="card-risk-preview" class="card-risk-preview"></p><details class="card-full-rules"><summary>结算、组合与完整规则</summary><div class="detail-section resolution-note"><b>实际怎样结算</b>${cardResolution(card,match.role)} ${cardRisk(card,match.role)}</div><div class="detail-section"><b>组合思路</b>${cardCombo(card)}</div><div class="detail-section"><b>对手如何反制</b>${d.counter}</div><div class="detail-section theory-note"><b>这张牌怎样改变传播</b>${CARD_THEORY[d.id]}</div><div class="detail-section"><b>融牌会怎样</b>保留主牌作用，数量或持续时间强化；II / III 级费用增加 12 / 24，同名冷却继承。</div></details>`;
+  $('card-description').innerHTML=`<div class="detail-heading">${cardIllustration(d.id,112)}<div><span class="detail-tag">${d.side==='both'?'通用牌':ROLES[d.side].name} · ${['','普通','稀有','史诗'][d.rarity]} · 强化 ${levelName(card.level)}</span><h2>${d.name}</h2></div></div><p class="detail-effect">${cardDescription(card)}</p><p class="detail-target"><b>作用对象</b>${d.target}</p><div class="detail-facts"><div>资源费用<b>${s.cost}</b></div><div>同名冷却<b>${d.cd} 天</b></div><div>${d.duration>0?'效果时长':'生效方式'}<b>${d.duration>0?s.duration.toFixed(1)+' 天':'抵达/即时'}</b></div></div><p id="card-risk-preview" class="card-risk-preview"></p><details class="card-full-rules"><summary>结算、组合与完整规则</summary><div class="detail-section resolution-note"><b>实际怎样结算</b>${cardResolution(card,match.role)} ${cardRisk(card,match.role)}</div><div class="detail-section"><b>组合思路</b>${cardCombo(card)}</div><div class="detail-section"><b>对手如何反制</b>${d.counter}</div><div class="detail-section theory-note"><b>这张牌怎样改变传播</b>${CARD_THEORY[d.id]}</div><div class="detail-section"><b>融牌会怎样</b>保留主牌作用，数量或持续时间强化；II / III 级费用增加 12 / 24，同名冷却继承。</div></details>`;
   const facts=$('card-description').querySelectorAll('.detail-facts b');
   if(card.id==='script')facts[2].textContent=`准备 ${s.duration.toFixed(1)} 天`;
   else if(d.duration===0)facts[2].textContent=['army','weaktie','lottery','debunk','radio','scout'].includes(card.id)?'消息抵达后':'立即生效';
@@ -450,7 +465,7 @@ function showEnding() {
   const assessment=!r.won&&r.score>=70?`档案 ${r.grade} 记录了「${e.title}」这一传播形态，形态基准为 ${r.scoreParts[0].value} 分。`:`${r.scoreReason}。`;
   $('end-assessment').textContent=`${r.won?'目标达成':'目标未达成'} · ${assessment} 档案分项如下。`;
   $('end-intervention').innerHTML=`<b>你的定向行动记录</b><span>${r.intervention.effective} 次定向干预生效</span><span>直接影响 ${r.intervention.changed} 人次</span><span>共派送 ${r.intervention.sent} 份消息</span>`;
-  drawResult($('end-art'),match.role,r.won);
+  drawResult($('end-art'),match.role,r.won,r.key);
   $('end-stats').innerHTML=`<div>结算相信率<b>${Math.round(r.belief*100)}%</b></div><div>相信率峰值<b>${Math.round(match.peak*100)}%</b></div><div>你的出牌<b>${match.player.played} 次</b></div><div>融合强化<b>${match.player.fused} 次</b></div>`;
   const chartW=550,chartH=105,path=key=>match.samples.map((p,i)=>`${i===0?'M':'L'}${(12+p.day/13.5*(chartW-24)).toFixed(1)},${(chartH-12-p[key]*(chartH-22)).toFixed(1)}`).join(' ');
   $('end-chart').innerHTML=`<svg viewBox="0 0 ${chartW} ${chartH+16}" role="img" aria-label="传播曲线：蓝色听说，红色相信。峰值 ${Math.round(match.peak*100)}%，结算相信 ${Math.round(r.belief*100)}%。"><path d="M12 10V${chartH-12}H${chartW-12}" fill="none" stroke="#d3cdbd"/><path d="${path('aware')}" fill="none" stroke="#568db9" stroke-width="2"/><path d="${path('belief')}" fill="none" stroke="#d64a56" stroke-width="2.5"/><text x="12" y="${chartH+10}" fill="#999584" font-size="9">开局</text><text x="${chartW-42}" y="${chartH+10}" fill="#999584" font-size="9">收束</text></svg>`;

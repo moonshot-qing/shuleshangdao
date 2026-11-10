@@ -1,5 +1,5 @@
 {
-  "version": "2026-11-09-art-refinement",
+  "version": "2026-11-10-campus-art-families",
   "source": "pixel-art.js",
   "provenance": "Original integer-grid Canvas and SVG artwork authored within this project; no third-party assets.",
   "license": "MIT (project license)",
@@ -8,36 +8,237 @@
     {
       "id": "campus-characters",
       "function": "getSprite",
-      "types": ["bigv", "mkt", "crowd", "bot", "mid", "leader", "troll", "counselor"],
-      "logicalSize": [18, 24],
-      "canvasSize": [36, 48],
-      "states": [0, 1, 2],
-      "poses": [0, 1],
+      "types": [
+        "bigv",
+        "mkt",
+        "crowd",
+        "bot",
+        "mid",
+        "leader",
+        "troll",
+        "counselor"
+      ],
+      "logicalSize": [
+        18,
+        24
+      ],
+      "canvasSize": [
+        36,
+        48
+      ],
+      "states": [
+        0,
+        1,
+        2
+      ],
+      "poses": [
+        0,
+        1
+      ],
       "frameCount": 48,
-      "pivotPixels": [18, 46],
+      "pivotPixels": [
+        18,
+        46
+      ],
       "alpha": true,
       "filter": "nearest",
       "collision": "none; presentation only",
-      "uses": ["network", "chat-avatar", "node-detail", "role-portrait", "campus-demo", "ending"]
+      "uses": [
+        "network",
+        "chat-avatar",
+        "node-detail",
+        "role-portrait",
+        "campus-demo",
+        "ending"
+      ]
     },
     {
-      "id": "card-illustrations",
+      "id": "compact-campus-characters",
+      "function": "getCompactSprite",
+      "types": [
+        "bigv",
+        "mkt",
+        "crowd",
+        "bot",
+        "mid",
+        "leader",
+        "troll",
+        "counselor"
+      ],
+      "logicalSize": [
+        12,
+        16
+      ],
+      "canvasSize": [
+        12,
+        16
+      ],
+      "states": [
+        0,
+        1,
+        2
+      ],
+      "poses": [
+        0,
+        1
+      ],
+      "frameCount": 48,
+      "pivotPixels": [
+        6,
+        15
+      ],
+      "alpha": true,
+      "filter": "nearest",
+      "displayPixels": {
+        "known": [
+          24,
+          32
+        ],
+        "unheardOrdinary": [
+          18,
+          24
+        ]
+      },
+      "collision": "none; existing node picking remains in game.js",
+      "uses": [
+        "phone-network",
+        "short-landscape-network",
+        "ending-extras"
+      ]
+    },
+    {
+      "id": "card-symbols",
       "function": "pixelIcon",
-      "variants": ["hot", "army", "control", "weaktie", "pr", "agenda", "lottery", "script", "debunk", "cold", "vaxx", "radio", "dig", "chot", "farm", "scout"],
-      "viewBox": [0, 0, 24, 24],
-      "displayPixels": [48, 24],
-      "pivotPixels": [12, 12],
+      "variants": [
+        "hot",
+        "army",
+        "control",
+        "weaktie",
+        "pr",
+        "agenda",
+        "lottery",
+        "script",
+        "debunk",
+        "cold",
+        "vaxx",
+        "radio",
+        "dig",
+        "chot",
+        "farm",
+        "scout"
+      ],
+      "viewBox": [
+        0,
+        0,
+        24,
+        24
+      ],
+      "displayPixels": [
+        48,
+        24
+      ],
+      "pivotPixels": [
+        12,
+        12
+      ],
       "alpha": true,
       "filter": "SVG crispEdges",
       "collision": "none; host button owns interaction",
-      "uses": ["hand", "card-detail", "fusion", "role-badge"]
+      "uses": [
+        "fusion",
+        "role-badge"
+      ]
+    },
+    {
+      "id": "card-scene-illustrations",
+      "function": "cardIllustration",
+      "variants": [
+        "hot",
+        "army",
+        "control",
+        "weaktie",
+        "pr",
+        "agenda",
+        "lottery",
+        "script",
+        "debunk",
+        "cold",
+        "vaxx",
+        "radio",
+        "dig",
+        "chot",
+        "farm",
+        "scout"
+      ],
+      "viewBox": [
+        0,
+        0,
+        64,
+        40
+      ],
+      "previewPixels": [
+        128,
+        80
+      ],
+      "alpha": true,
+      "filter": "SVG crispEdges",
+      "collision": "none; existing card button owns interaction",
+      "uses": [
+        "hand",
+        "card-detail"
+      ]
+    },
+    {
+      "id": "community-landmarks",
+      "function": "getGroupLandmark",
+      "variants": [
+        "stage",
+        "library",
+        "campus-store",
+        "noticeboard"
+      ],
+      "logicalSize": [
+        96,
+        56
+      ],
+      "canvasSize": [
+        96,
+        56
+      ],
+      "displayWidths": [
+        96,
+        80,
+        64
+      ],
+      "pivotPixels": [
+        48,
+        56
+      ],
+      "alpha": true,
+      "filter": "nearest",
+      "collision": "none; visual scenery only",
+      "uses": [
+        "network"
+      ]
     },
     {
       "id": "scenario-thumbnails",
       "function": "campusThumbnail",
-      "variants": ["campus-stage", "library", "campus-store"],
-      "viewBox": [0, 0, 64, 32],
-      "pivotPixels": [32, 32],
+      "variants": [
+        "campus-stage",
+        "library",
+        "campus-store"
+      ],
+      "viewBox": [
+        0,
+        0,
+        64,
+        32
+      ],
+      "pivotPixels": [
+        32,
+        32
+      ],
       "alpha": true,
       "filter": "SVG crispEdges",
       "collision": "none"
@@ -45,10 +246,23 @@
     {
       "id": "opening-courtyard",
       "function": "drawCampus",
-      "variants": ["campus-stage", "library", "campus-store"],
-      "logicalSize": [600, 190],
-      "canvasSize": [1200, 380],
-      "pivotPixels": [600, 380],
+      "variants": [
+        "campus-stage",
+        "library",
+        "campus-store"
+      ],
+      "logicalSize": [
+        600,
+        190
+      ],
+      "canvasSize": [
+        1200,
+        380
+      ],
+      "pivotPixels": [
+        600,
+        380
+      ],
       "alpha": false,
       "filter": "nearest",
       "animation": "message travel and two anchored character poses; static in reduced motion",
@@ -57,21 +271,86 @@
     {
       "id": "ending-archive",
       "function": "drawResult",
-      "variants": ["rumor-won", "rumor-lost", "clarify-won", "clarify-lost"],
-      "logicalSize": [64, 48],
-      "canvasSize": [128, 96],
-      "pivotPixels": [64, 88],
+      "variants": [
+        "known",
+        "cradle",
+        "rebound",
+        "meme",
+        "fade",
+        "stalemate"
+      ],
+      "logicalSize": [
+        96,
+        64
+      ],
+      "canvasSize": [
+        192,
+        128
+      ],
+      "pivotPixels": [
+        96,
+        124
+      ],
       "alpha": true,
       "filter": "nearest",
-      "collision": "none"
+      "collision": "none",
+      "roles": [
+        "rumor",
+        "clarify"
+      ],
+      "won": [
+        false,
+        true
+      ],
+      "displayPixels": {
+        "desktop": [
+          156,
+          104
+        ],
+        "phone": [
+          84,
+          56
+        ]
+      },
+      "winMarker": "gold seal only when won; scenery follows the actual ending key"
     }
   ],
   "review": {
     "generator": "scripts/preview_art.py",
-    "contactSheet": "test-results/art-review/art-contact-sheet.png",
-    "viewports": [[1440, 900], [390, 844], [360, 800], [844, 390]],
+    "contactSheet": "screenshots/03-美术图鉴.png",
+    "viewports": [
+      [
+        1440,
+        900
+      ],
+      [
+        390,
+        844
+      ],
+      [
+        360,
+        800
+      ],
+      [
+        320,
+        700
+      ],
+      [
+        768,
+        1024
+      ],
+      [
+        844,
+        390
+      ]
+    ],
     "fixtureSeed": 173,
     "fixtureEndingIsForced": true,
-    "limitations": ["No physical-device or Safari review", "No player art-preference study", "No balance inference"]
+    "limitations": [
+      "No physical-device or Safari review",
+      "No player art-preference study",
+      "No balance inference"
+    ],
+    "simulationSha256": "0382fb7f9efec34e9b660de94be097f0a2272f9136b8343e0c96cf6b9c9a337e"
   }
 }
